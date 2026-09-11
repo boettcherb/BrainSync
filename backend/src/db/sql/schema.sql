@@ -133,6 +133,7 @@ CREATE TABLE calendars (
 --              is deleted, its categories are also deleted.
 -- name:        Display name of the category.
 -- color:       CSS-compatible color used to render events in this category.
+-- icon:        Icon representing the category. Example: "fa-star"
 -- created_by:  User who created the category. If the user is deleted,
 --              the category remains but created_by is set to NULL.
 -- created_at:  Timestamp recording when the category was created.
@@ -143,6 +144,7 @@ CREATE TABLE event_categories (
     calendar_id UUID        NOT NULL REFERENCES calendars(id) ON DELETE CASCADE,
     name        TEXT        NOT NULL,
     color       TEXT        NOT NULL,
+    icon        TEXT        NOT NULL DEFAULT 'calendar',
     created_by  UUID        REFERENCES users(id) ON DELETE SET NULL,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
