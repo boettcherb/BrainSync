@@ -1,10 +1,9 @@
 // Calendar data type: Matches the 'calendars' table in the database schema.
 export interface Calendar {
     id:          string;
+    group_id:    string | null;
     name:        string;
     description: string | null;
-    owner_id:    string | null;
-    group_id:    string | null;
     created_at:  Date;
     updated_at:  Date;
 }
