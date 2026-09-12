@@ -2,6 +2,7 @@ import express from 'express';
 import { generalApiLimiter, authLimiter } from './middleware/rateLimitMiddleware';
 import groupRouter from './routers/groupRouter';
 import calendarRouter from './routers/calendarRouter';
+import userRouter from './routers/userRouter';
 
 const port = 3000;
 const app = express();
@@ -25,6 +26,11 @@ app.get("/health", (req, res) => {
         message: "Backend is running",
     });
 });
+
+
+// Auth Routes:
+// POST /auth/login - Log in a user and return an authentication token
+app.use('/auth', authLimiter, userRouter);
 
 
 // Group Routes:
