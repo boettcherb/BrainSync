@@ -35,9 +35,10 @@ CREATE TABLE users (
 -- ============================================================
 -- GROUPS
 -- ============================================================
--- 
--- A group contains multiple users and can own shared calendars.
--- Example uses: shared calendars for families, roommates, work teams, or trips.
+--
+-- A group is a collection of users who can share calendars and collaborate on events.
+-- Groups with one member are effectively personal groups, and the calendars they own
+-- function as personal calendars.
 --
 -- id:          Unique identifier for the group.
 -- name:        Display name of the group.
@@ -59,8 +60,7 @@ CREATE TABLE groups (
 -- ============================================================
 -- 
 -- Junction table connecting users and groups.
--- A user can belong to many groups.
--- A group can contain many users.
+-- A user can belong to many groups. A group can contain many users.
 -- Primary key: combination of user_id and group_id. Prevents a user
 -- from being added to a group more than once.
 --
@@ -88,33 +88,24 @@ CREATE TABLE group_memberships (
 -- CALENDARS
 -- ============================================================
 -- 
--- Represents an individual calendar.
--- A calendar must belong to either a user OR a group, but not both.
+-- Represents an individual calendar. Each calendar belongs to a group,
+-- which can be one or many users.
 --
 -- id:          Unique identifier for the calendar.
+-- group_id:    The group that owns this calendar. If the group
+--              is deleted, its calendars are also deleted.
 -- name:        Display name of the calendar.
 -- description: Optional longer description explaining the calendar's purpose.
--- owner_id:    If this is a personal calendar, the user who owns it. If the user
---              deletes their account, their personal calendars are also deleted.
--- group_id:    If this is a group calendar, the group that owns it. If the group
---              is deleted, its calendars are also deleted.
 -- created_at:  Timestamp recording when the calendar was created.
 -- updated_at:  Timestamp recording when the calendar was last changed.
 --
 CREATE TABLE calendars (
     id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_id    UUID        NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
     name        TEXT        NOT NULL,
     description TEXT,
-    owner_id    UUID        REFERENCES users(id) ON DELETE CASCADE,
-    group_id    UUID        REFERENCES groups(id) ON DELETE CASCADE,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-    CHECK (
-        (owner_id IS NOT NULL AND group_id IS NULL)
-        OR
-        (owner_id IS NULL AND group_id IS NOT NULL)
-    )
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 
@@ -133,6 +124,7 @@ CREATE TABLE calendars (
 --              is deleted, its categories are also deleted.
 -- name:        Display name of the category.
 -- color:       CSS-compatible color used to render events in this category.
+-- icon:        Icon representing the category. Example: "fa-star"
 -- created_by:  User who created the category. If the user is deleted,
 --              the category remains but created_by is set to NULL.
 -- created_at:  Timestamp recording when the category was created.
@@ -143,6 +135,7 @@ CREATE TABLE event_categories (
     calendar_id UUID        NOT NULL REFERENCES calendars(id) ON DELETE CASCADE,
     name        TEXT        NOT NULL,
     color       TEXT        NOT NULL,
+    icon        TEXT        NOT NULL DEFAULT 'calendar',
     created_by  UUID        REFERENCES users(id) ON DELETE SET NULL,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -390,15 +383,9 @@ CREATE TABLE recurring_event_attachments (
 CREATE INDEX idx_group_memberships_group_user
     ON group_memberships(group_id, user_id);
 
--- Find all personal calendars owned by a user.
-CREATE INDEX idx_calendars_owner_id
-    ON calendars(owner_id)
-    WHERE owner_id IS NOT NULL;
-
 -- Find all calendars owned by a group.
 CREATE INDEX idx_calendars_group_id
-    ON calendars(group_id)
-    WHERE group_id IS NOT NULL;
+    ON calendars(group_id);
 
 -- Supports finding events belonging to a calendar within a date range.
 -- Example:
