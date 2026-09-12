@@ -1,15 +1,19 @@
+import 'dotenv/config';
 import express from 'express';
+import cors from 'cors';
 import { generalApiLimiter, authLimiter } from './middleware/rateLimitMiddleware';
 import groupRouter from './routers/groupRouter';
 import calendarRouter from './routers/calendarRouter';
 import userRouter from './routers/userRouter';
 
-const port = 3000;
+const port = process.env.PORT || 3000;
 const app = express();
 
 // Render runs the app behind a proxy. Trust one proxy hop so rate limiting uses the real client IP.
 app.set("trust proxy", 1);
 
+app.use(cors({ origin: process.env.FRONTEND_URL })); // Enable CORS for the frontend URL only
+app.use(express.json());    // Parse JSON request bodies
 app.use(generalApiLimiter); // Apply general API rate limiting to all routes
 
 // Routes:
