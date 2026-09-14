@@ -16,16 +16,16 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 -- Represents a registered user of the calendar application.
 --
 -- id:            Unique identifier for the user.
--- username:      Public/login username for the user.
 -- email:         User's email address, used for login and account recovery.
+-- username:      Public/login username for the user.
 -- password_hash: Secure hash of the user's password.
 -- created_at:    Timestamp recording when the account was created.
 -- updated_at:    Timestamp recording when the user record was last changed.
 --
 CREATE TABLE users (
     id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    username      TEXT        NOT NULL UNIQUE,
     email         TEXT        NOT NULL UNIQUE,
+    username      TEXT        NOT NULL UNIQUE,
     password_hash TEXT        NOT NULL,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()

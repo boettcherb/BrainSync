@@ -27,7 +27,7 @@ export async function createUser(
     const query = `
         INSERT INTO users (username, email, password_hash)
           VALUES ($1, $2, $3)
-          RETURNING id, username, email, created_at, updated_at;
+          RETURNING id, email, username, created_at, updated_at;
     `;
     const values = [username, email, password_hash];
     const result = await pool.query<PublicUser>(query, values);
