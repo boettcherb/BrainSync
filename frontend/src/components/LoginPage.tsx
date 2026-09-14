@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import type { SignupInput } from '../types/User';
 
 interface LoginPageProps {
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, username: string, password: string) => Promise<void>;
+  signup: (newUser: SignupInput) => Promise<void>;
 }
 
 function LoginPage({ login, signup }: LoginPageProps) {
@@ -33,9 +34,11 @@ function LoginPage({ login, signup }: LoginPageProps) {
     const formData = new FormData(e.currentTarget);
     const email = formData.get('email') as string;
     const username = formData.get('username') as string;
+    const display_name = formData.get('displayName') as string;
     const password = formData.get('password') as string;
     try {
-      await signup(email, username, password);
+      const newUser: SignupInput = { email, username, password, display_name };
+      await signup(newUser);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to create account. Please try again.');
     } finally {
@@ -83,27 +86,45 @@ function LoginPage({ login, signup }: LoginPageProps) {
               />
             </div>
             {isSignUp && (
-              <div className="mb-3">
-                <label htmlFor="username" className="form-label fw-semibold">
-                  Username
-                </label>
-                <input
-                  id="username"
-                  type="text"
-                  name="username"
-                  minLength={3}
-                  maxLength={20}
-                  pattern="[A-Za-z0-9_]+"
-                  title="Username can only contain letters, numbers, and underscores. 3-20 characters."
-                  className="form-control"
-                  placeholder="Username"
-                  autoComplete="username"
-                  required
-                />""
-                <small style={{fontSize: "12px"}}>
-                  3-20 characters. Letters, numbers, and underscores only.
-                </small>
-              </div>
+              <>
+                <div className="mb-3">
+                  <label htmlFor="username" className="form-label fw-semibold">
+                    Username
+                  </label>
+                  <input
+                    id="username"
+                    type="text"
+                    name="username"
+                    minLength={3}
+                    maxLength={20}
+                    pattern="[A-Za-z0-9_]+"
+                    title="Username can only contain letters, numbers, and underscores. 3-20 characters."
+                    className="form-control"
+                    placeholder="Username"
+                    autoComplete="username"
+                    required
+                  />
+                  <small style={{fontSize: "12px"}}>
+                    3-20 characters. Letters, numbers, and underscores only.
+                  </small>
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="displayName" className="form-label fw-semibold">
+                    Display Name
+                  </label>
+                  <input
+                    id="displayName"
+                    type="text"
+                    name="displayName"
+                    minLength={1}
+                    maxLength={50}
+                    className="form-control"
+                    placeholder="Name"
+                    autoComplete="displayName"
+                    required
+                  />
+                </div>
+              </>
             )}
             <div className="mb-4">
               <label htmlFor="password" className="form-label fw-semibold">

@@ -1,3 +1,5 @@
+import type { SignupInput } from '../types/User';
+
 // Backend API URL
 const API_URL = import.meta.env.VITE_BACKEND_API_URL;
 
@@ -18,13 +20,13 @@ export async function loginRequest(email: string, password: string) {
 }
 
 // API request for user registration (signup)
-export async function signupRequest(email: string, username: string, password: string) {
+export async function signupRequest(newUser: SignupInput) {
   const response = await fetch(`${API_URL}/auth/signup`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ email, username, password }),
+    body: JSON.stringify(newUser),
   });
   const data = await response.json();
   if (!response.ok) {

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import LoginPage from './components/LoginPage';
 import { loginRequest, signupRequest } from './api/auth';
-import type { User } from './types/User';
+import type { User, SignupInput } from './types/User';
 
 interface AuthState {
   user: User;
@@ -16,8 +16,8 @@ function App() {
     setAuth({ user: data.user, token: data.token });
   }
 
-  async function signup(email: string, username: string, password: string): Promise<void> {
-    const data = await signupRequest(email, username, password);
+  async function signup(newUser: SignupInput): Promise<void> {
+    const data = await signupRequest(newUser);
     setAuth({ user: data.user, token: data.token });
   }
 
@@ -30,6 +30,11 @@ function App() {
   return (
     <div>
       <h1>Successfully Logged In!</h1>
+      <p> User id: {auth.user.id}</p>
+      <p> User email: {auth.user.email}</p>
+      <p> User email_verified: {auth.user.email_verified ? "true" : "false"}</p>
+      <p> User username: {auth.user.username}</p>
+      <p> User display_name: {auth.user.display_name}</p>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { pool } from "./pool";
-import type { User, PublicUser } from '../types/User';
+import type { User, PublicUser, CreateUserInput } from '../types/User';
 
 export async function getUserByEmail(email: string): Promise<User | null> {
     const query = `
@@ -19,17 +19,19 @@ export async function getUserByUsername(username: string): Promise<User | null> 
     return result.rows[0] ?? null;
 }
 
-export async function createUser(
-    username: string,
-    email: string,
-    password_hash: string
-): Promise<PublicUser | null> {
+export async function createUser(newUser: CreateUserInput): Promise<PublicUser | null> {
     const query = `
-        INSERT INTO users (username, email, password_hash)
-          VALUES ($1, $2, $3)
-          RETURNING id, email, username, created_at, updated_at;
+        INSERT INTO users (email, username, display_name, password_hash)
+          VALUES ($1, $2, $3, $4)
+          RETURNING id, email, email_verified, username,
+            display_name, created_at, updated_at;
     `;
-    const values = [username, email, password_hash];
+    const values = [
+        newUser.email,
+        newUser.username,
+        newUser.display_name,
+        newUser.password_hash
+    ];
     const result = await pool.query<PublicUser>(query, values);
     return result.rows[0] ?? null;
 }
