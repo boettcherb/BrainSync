@@ -91,11 +91,18 @@ function LoginPage({ login, signup }: LoginPageProps) {
                   id="username"
                   type="text"
                   name="username"
+                  minLength={3}
+                  maxLength={20}
+                  pattern="[A-Za-z0-9_]+"
+                  title="Username can only contain letters, numbers, and underscores. 3-20 characters."
                   className="form-control"
                   placeholder="Username"
                   autoComplete="username"
                   required
-                />
+                />""
+                <small style={{fontSize: "12px"}}>
+                  3-20 characters. Letters, numbers, and underscores only.
+                </small>
               </div>
             )}
             <div className="mb-4">
@@ -106,9 +113,10 @@ function LoginPage({ login, signup }: LoginPageProps) {
                 id="password"
                 type="password"
                 name="password"
+                minLength={6}
                 className="form-control"
                 placeholder="Password"
-                autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                autoComplete="off"
                 required
               />
             </div>

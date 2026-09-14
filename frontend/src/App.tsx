@@ -12,13 +12,13 @@ function App() {
   const [auth, setAuth] = useState<AuthState | null>(null);
 
   async function login(email: string, password: string): Promise<void> {
-      const data = await loginRequest(email, password);
-      setAuth({ user: data.user, token: data.token });
+    const data = await loginRequest(email, password);
+    setAuth({ user: data.user, token: data.token });
   }
 
   async function signup(email: string, username: string, password: string): Promise<void> {
-      const data = await signupRequest(email, username, password);
-      setAuth({ user: data.user, token: data.token });
+    const data = await signupRequest(email, username, password);
+    setAuth({ user: data.user, token: data.token });
   }
 
   // If the user is not logged in, show the login page.
