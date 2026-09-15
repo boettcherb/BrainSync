@@ -56,3 +56,10 @@ export interface GroupInput {
 // Modify all events                      Y      Y      Y        -         -
 // Delete all events                      Y      Y      Y        -         -
 export type GroupRole = 'owner' | 'admin' | 'editor' | 'contributor' | 'viewer';
+
+
+// UserGroup data type: Represents a Group in the context of a user,
+// including the user's role and permission within that group.
+export interface UserGroup extends Group {
+    role: GroupRole;
+}
