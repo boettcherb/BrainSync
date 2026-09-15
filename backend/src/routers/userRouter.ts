@@ -7,6 +7,7 @@ import type { User, PublicUser, SignupInput } from '../types/User';
 
 const router = express.Router();
 
+
 // Helper function to create a JWT authentication token for a user.
 function createAuthToken(userId: string): string {
     const jwtSecret = process.env.JWT_SECRET;
@@ -16,18 +17,21 @@ function createAuthToken(userId: string): string {
     return jwt.sign({ userId }, jwtSecret, { expiresIn: '1h' });
 }
 
+
 // Type used as the return type for the validateNewUser function below
 type ValidationResult =
     | { data: SignupInput; error: null }
     | { data: null; error: string };
 
+
 // Validate new user. Requirements:
-// 1. The request body for /auth/signup should have three string fields:
-//    email, username, and password.
+// 1. The request body for /auth/signup must be an object with the fields
+//    email, username, display_name, and password.
 // 2. 'email' must be a properly formed email address.
 // 3. 'username' must only contain alphanumeric characters and underscores, and
 //    must be between 3 and 20 characters in length.
-// 4. 'password' must be between 6 and 72 characters in length.
+// 4. 'display_name' must be between 1 and 50 characters in length.
+// 5. 'password' must be between 6 and 72 characters in length.
 function validateNewUser(reqBody: unknown): ValidationResult {
     // Request body must be an object
     if (typeof reqBody !== 'object' || reqBody === null) {
@@ -73,11 +77,13 @@ function validateNewUser(reqBody: unknown): ValidationResult {
     };
 }
 
+
 // Helper function to convert a User to a PublicUser by removing password data
 function toPublicUser(user: User): PublicUser {
     const { password_hash: _, ...publicUser } = user;
     return publicUser;
 }
+
 
 // POST /auth/login - Log in a user and return an authentication token
 router.post('/login', async (req, res) => {
@@ -105,13 +111,13 @@ router.post('/login', async (req, res) => {
         // Generate an authentication token for the user
         const token = createAuthToken(user.id);
         // Return the token and user data to the frontend
-        const publicUser: PublicUser = toPublicUser(user);
-        res.json({ token, user: publicUser });
+        res.json({ token, user: toPublicUser(user) });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Internal server error" });
     }
 });
+
 
 // POST /auth/signup - Create a new user
 router.post('/signup', async (req, res) => {
