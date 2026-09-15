@@ -1,6 +1,6 @@
 import { pool } from "./pool";
 import type { User, PublicUser, CreateUserInput } from '../types/User';
-import type { Group, GroupInput, GroupRole } from '../types/Group';
+import type { Group, GroupInput, GroupRole, UserGroup } from '../types/Group';
 
 
 // Query the 'users' table for a row containing the given email. Email has
@@ -89,4 +89,19 @@ export async function addUserToGroup(
         [userId, groupId, role]
     );
     return result.rowCount === 1;
+}
+
+
+// Retrieve all groups that the User with the given userId is a part of.
+// Achieve this by joining the 'groups' and 'group_memberships' tables.
+export async function getGroupsByUserId(userId: string): Promise<UserGroup[]> {
+    const result = await pool.query<UserGroup>(
+        `SELECT g.id, g.name, g.description, g.created_at, g.updated_at, gm.role
+            FROM groups g JOIN group_memberships gm
+                ON g.id = gm.group_id
+            WHERE gm.user_id = $1
+            ORDER BY g.created_at;`,
+        [userId]
+    );
+    return result.rows;
 }
