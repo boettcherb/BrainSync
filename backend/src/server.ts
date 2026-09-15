@@ -33,14 +33,16 @@ app.get("/health", (req, res) => {
 
 
 // Auth Routes:
-// POST /auth/login - Log in a user and return an authentication token
+// POST /auth/login  - Log in a user and return an authentication token
+// POST /auth/signup - Create a new user
 app.use('/auth', authLimiter, userRouter);
 
 
 // Group Routes:
-// GET /groups                    - Get groups the current user belongs to
-// GET /groups/:groupId/members   - Get members of a specific group
-// GET /groups/:groupId/calendars - Get calendars for a specific group
+// GET  /groups                    - Get groups the current user belongs to
+// GET  /groups/:groupId/members   - Get members of a specific group
+// GET  /groups/:groupId/calendars - Get calendars for a specific group
+// POST /groups                   - Create a new group
 app.use('/groups', groupRouter);
 
 
