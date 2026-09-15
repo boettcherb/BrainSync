@@ -4,7 +4,7 @@ import type { UserGroup } from "../types/Group";
 const API_URL = import.meta.env.VITE_BACKEND_API_URL;
 
 // API request to get all groups a user is a member of
-export async function userGroupsRequest(token: string): Promise<UserGroup[]> {
+export async function getUserGroupsRequest(token: string): Promise<UserGroup[]> {
     const response = await fetch(`${API_URL}/groups`, {
         method: 'GET',
         headers: {

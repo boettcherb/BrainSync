@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import LoginPage from './components/LoginPage';
 import { loginRequest, signupRequest } from './api/auth';
-import { userGroupsRequest } from './api/groups';
+import { getUserGroupsRequest } from './api/groups';
 import type { User, SignupInput } from './types/User';
 import type { UserGroup } from './types/Group';
 
@@ -23,7 +23,7 @@ function App() {
         setActiveGroup(null);
         return;
       }
-      const userGroups = await userGroupsRequest(auth.token);
+      const userGroups = await getUserGroupsRequest(auth.token);
       setGroups(userGroups);
       setActiveGroup(userGroups[0] ?? null);
     }
