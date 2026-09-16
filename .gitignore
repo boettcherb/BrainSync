@@ -26,3 +26,6 @@ pnpm-debug.log*
 # Operating System files
 .DS_Store
 Thumbs.db
+
+# Notes directory (used for personal notes)
+notes/
