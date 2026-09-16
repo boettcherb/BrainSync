@@ -74,14 +74,16 @@ CREATE TABLE groups (
 --             all memberships for that group are automatically removed.
 -- role:       Determines the user's permissions within the group.
 --                owner: Can manage the group, memberships, and calendar content.
+--                admin: Can manage memberships and calendar content but cannot delete the group.
 --                editor: Can create and edit shared calendar content.
+--                contributor: Can contribute to shared calendar content but with limited permissions.
 --                viewer: Can view shared calendar content but cannot modify it.
 -- created_at: Timestamp recording when the user joined the group.
 --
 CREATE TABLE group_memberships (
     user_id    UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     group_id   UUID        NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
-    role       TEXT        NOT NULL CHECK (role IN ('owner', 'editor', 'viewer')),
+    role       TEXT        NOT NULL CHECK (role IN ('owner', 'admin', 'editor', 'contributor', 'viewer')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     PRIMARY KEY (user_id, group_id)
@@ -379,34 +381,44 @@ CREATE TABLE recurring_event_attachments (
 
 
 -- ============================================================
--- INDEXES
+-- TRIGGERS
 -- ============================================================
 
--- Useful for listing all members of a group. Example:
---   SELECT * FROM group_memberships WHERE group_id = $1;
-CREATE INDEX idx_group_memberships_group_user
-    ON group_memberships(group_id, user_id);
+-- Trigger function to automatically update the "updated_at" timestamp before any row update.
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
--- Find all calendars owned by a group.
-CREATE INDEX idx_calendars_group_id
-    ON calendars(group_id);
+CREATE TRIGGER users_set_updated_at
+BEFORE UPDATE ON users
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
 
--- Supports finding events belonging to a calendar within a date range.
--- Example:
---   SELECT * FROM events WHERE calendar_id = $1
---     AND start_time < $window_end
---     AND end_time > $window_start;
-CREATE INDEX idx_events_calendar_start_time
-    ON events(calendar_id, start_time);
+CREATE TRIGGER groups_set_updated_at
+BEFORE UPDATE ON groups
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
 
--- Supports loading recurring series for a calendar
-CREATE INDEX idx_recurring_events_calendar_start_time
-    ON recurring_events(calendar_id, start_time);
+CREATE TRIGGER calendars_set_updated_at
+BEFORE UPDATE ON calendars
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
 
--- Supports finding events that reference a particular attachment.
-CREATE INDEX idx_event_attachments_attachment_id
-    ON event_attachments(attachment_id);
+CREATE TRIGGER events_set_updated_at
+BEFORE UPDATE ON event_categories
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
 
--- Supports finding recurring series that reference a particular attachment.
-CREATE INDEX idx_recurring_event_attachments_attachment_id
-    ON recurring_event_attachments(attachment_id);
+CREATE TRIGGER recurring_events_set_updated_at
+BEFORE UPDATE ON recurring_events
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER event_attachments_set_updated_at
+BEFORE UPDATE ON events
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
