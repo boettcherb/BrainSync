@@ -78,7 +78,7 @@ export async function createGroup(newGroup: GroupInput, userId: string): Promise
 export async function addUserToGroup(
     userId: string,
     groupId: string,
-    role: GroupRole
+    role: GroupRole,
 ): Promise<boolean> {
     if (role === 'owner') {
         throw new Error("Cannot add a user to a group with the owner role");
@@ -104,4 +104,62 @@ export async function getGroupsByUserId(userId: string): Promise<UserGroup[]> {
         [userId]
     );
     return result.rows;
+}
+
+
+// Find the role that a user has within a group
+export async function getUserRoleInGroup(
+    userId: string,
+    groupId: string,
+): Promise<GroupRole | null> {
+    const result = await pool.query<{ role: GroupRole }>(
+        `SELECT role FROM group_memberships
+            WHERE user_id = $1 AND group_id = $2;`,
+        [userId, groupId]
+    );
+    return result.rows[0]?.role ?? null;
+}
+
+
+// Delete a group from the database
+export async function deleteGroup(
+    groupId: string,
+    userId: string,
+): Promise<boolean> {
+    const result = await pool.query(
+        `DELETE FROM groups g
+            WHERE g.id = $1
+            AND EXISTS (
+                SELECT 1 FROM group_memberships gm
+                    WHERE gm.group_id = g.id
+                        AND gm.user_id = $2
+                        AND gm.role = 'owner'
+            )
+            RETURNING g.*;`,
+        [groupId, userId]
+    );
+    return result.rowCount === 1;
+}
+
+
+// Update a group in the database. Return null if the row was not updated
+export async function updateGroup(
+    groupId: string,
+    groupData: GroupInput,
+    userId: string,
+): Promise<Group | null> {
+    const result = await pool.query<Group>(
+        `UPDATE groups g
+            SET name = $1, description = $2
+            WHERE g.id = $3
+            AND EXISTS (
+                SELECT 1 FROM group_memberships gm
+                    WHERE gm.group_id = g.id
+                        AND gm.user_id = $4
+                        AND gm.role IN ('owner', 'admin')
+            )
+            RETURNING g.*;`,
+        [groupData.name, groupData.description, groupId, userId]
+    );
+    return result.rows[0] ?? null;
 }
