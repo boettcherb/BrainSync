@@ -163,3 +163,52 @@ export async function updateGroup(
     );
     return result.rows[0] ?? null;
 }
+
+
+// Leave a group. An owner cannot leave the group. They must transfer
+// ownership first.
+export async function leaveGroup(
+    groupId: string,
+    userId: string,
+): Promise<boolean> {
+    const result = await pool.query(
+        `DELETE FROM group_memberships
+            WHERE group_id = $1
+            AND user_id = $2
+            AND role <> 'owner';`,
+        [groupId, userId]
+    );
+    return result.rowCount === 1;
+}
+
+
+// Remove a specific member from a group. Owners can remove any member
+// (except themselves), while admins can only remove members with lower
+// roles (editors, contributors, and viewers).
+// Users cannot remove themselves here. Use leaveGroup instead.
+export async function removeGroupMember(
+    groupId: string,
+    memberId: string,   // the member to be removed from the group
+    userId: string,     // the owner or admin performing the removal
+): Promise<boolean> {
+    if (memberId === userId) return false;
+    const result = await pool.query(
+        `DELETE FROM group_memberships AS member
+            WHERE member.group_id = $1
+            AND member.user_id = $2
+            AND EXISTS (
+                SELECT 1 FROM group_memberships AS requester
+                    WHERE requester.group_id = member.group_id
+                    AND requester.user_id = $3
+                    AND (
+                        (requester.role = 'owner'
+                            AND member.role <> 'owner')
+                        OR
+                        (requester.role = 'admin' 
+                            AND member.role NOT IN ('owner', 'admin'))
+                    )
+            );`,
+        [groupId, memberId, userId]
+    );
+    return result.rowCount === 1;
+}
