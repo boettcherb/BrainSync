@@ -72,6 +72,42 @@ export async function deleteGroupRequest(
     });
     if (!response.ok) {
         const data = await response.json().catch(() => null);
-        throw new Error(data.message || "Error deleting group");
+        throw new Error(data?.message || "Error deleting group");
+    }
+}
+
+// API request to leave a group
+export async function leaveGroupRequest(
+    groupId: string,
+    token: string
+): Promise<void> {
+    const response = await fetch(`${API_URL}/groups/${groupId}/members/me`, {
+        method: 'DELETE',
+        headers: {
+            Authorization: `Bearer ${token}`,
+        }
+    });
+    if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.message || "Error leaving group");
+    }
+}
+
+// API request to remove a specific member from a group
+export async function removeGroupMemberRequest(
+    groupId: string,
+    memberId: string,
+    token: string
+): Promise<void> {
+    const url = `${API_URL}/groups/${groupId}/members/${memberId}`;
+    const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+            Authorization: `Bearer ${token}`,
+        }
+    });
+    if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.message || "Error removing group member");
     }
 }
