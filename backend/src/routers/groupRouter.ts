@@ -19,18 +19,6 @@ router.get('/', async (req: AuthenticatedRequest, res) => {
 });
 
 
-// GET /groups/:groupId/members - Get members of a specific group
-router.get('/:groupId/members', async (req: AuthenticatedRequest, res) => {
-    res.send(`Get members of group with ID ${req.params.groupId}`);
-});
-
-
-// GET /groups/:groupId/calendars - Get calendars for a specific group
-router.get('/:groupId/calendars', async (req: AuthenticatedRequest, res) => {
-    res.send(`Get calendars for group with ID ${req.params.groupId}`);
-});
-
-
 // POST /groups - Create a group
 router.post('/', async (req: AuthenticatedRequest, res) => {
     try {
@@ -116,6 +104,65 @@ router.delete('/:groupId', async (req: AuthenticatedRequest, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 })
+
+
+// GET /groups/:groupId/members - Get members of a specific group
+router.get('/:groupId/members', async (req: AuthenticatedRequest, res) => {
+    res.send(`Get members of group with ID ${req.params.groupId}`);
+});
+
+
+// DELETE /groups/:groupId/members/me - Leave a specific group
+router.delete('/:groupId/members/me', async (req: AuthenticatedRequest, res) => {
+    try {
+        // Retrieve the userId from the authenticated request
+        // and the groupId from the request parameters.
+        const userId = req.user!.userId;
+        const groupId = req.params.groupId as string;
+        // Leave the group. The leaveGroup function ensures that the user
+        // leaving is not the owner.
+        const left = await groupDB.leaveGroup(groupId, userId);
+        if (!left) {
+            res.status(403).json({ message: "Error leaving the group" });
+            return;
+        }
+        res.status(204).send();
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+
+// DELETE /groups/:groupId/members/:memberId - Remove a specific member from a group
+router.delete('/:groupId/members/:memberId', async (req: AuthenticatedRequest, res) => {
+    try {
+        // Retrieve the userId from the authenticated request
+        // and the groupId and memberId from the request parameters.
+        const userId = req.user!.userId;
+        const groupId = req.params.groupId as string;
+        const memberId = req.params.memberId as string;
+        // Attempt to remove the member from the group. The function checks that
+        // the user performing the removal has the necessary permissions.
+        const removed = await groupDB.removeGroupMember(groupId, memberId, userId);
+        if (!removed) {
+            res.status(403).json({
+                message: "You do not have permission to remove this member from the group"
+            });
+            return;
+        }
+        res.status(204).send();
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+
+// GET /groups/:groupId/calendars - Get calendars for a specific group
+router.get('/:groupId/calendars', async (req: AuthenticatedRequest, res) => {
+    res.send(`Get calendars for group with ID ${req.params.groupId}`);
+});
 
 
 export default router;

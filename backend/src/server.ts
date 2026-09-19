@@ -39,12 +39,14 @@ app.use('/auth', authLimiter, userRouter);
 
 
 // Group Routes:
-// GET    /groups                    - Get groups the current user belongs to
-// GET    /groups/:groupId/members   - Get members of a specific group
-// GET    /groups/:groupId/calendars - Get calendars for a specific group
-// POST   /groups                    - Create a new group
-// PUT    /groups/:groupId           - Update a specific group
-// DELETE /groups/:groupId           - Delete a specific group
+// GET    /groups                            - Get groups the current user belongs to
+// POST   /groups                            - Create a new group
+// PUT    /groups/:groupId                   - Update a specific group
+// DELETE /groups/:groupId                   - Delete a specific group
+// GET    /groups/:groupId/members           - Get members of a specific group
+// DELETE /groups/:groupId/members/me        - Leave a specific group
+// DELETE /groups/:groupId/members/:memberId - Remove a specific member from a group
+// GET    /groups/:groupId/calendars         - Get calendars for a specific group
 app.use('/groups', groupRouter);
 
 
