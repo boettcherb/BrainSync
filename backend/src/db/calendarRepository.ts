@@ -16,8 +16,8 @@ export async function getEventsByDateRange(calendarId: string, startDate: Date, 
     const query = `
         SELECT * FROM events
           WHERE calendar_id = $1
-            AND start_time < $3
-            AND end_time > $2
+          AND start_time < $3
+          AND end_time > $2
           ORDER BY start_time;
     `;
     const result = await pool.query<Event>(query, [calendarId, startDate, endDate]);
