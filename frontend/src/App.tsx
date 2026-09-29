@@ -126,12 +126,12 @@ function App() {
 
   async function addGroupMember(
     groupId: string,
-    identifier: string,
+    username: string,
     role: GroupRole
   ): Promise<void> {
     if (!auth) return;
     const member = await groupAPI.addGroupMember(
-      groupId, identifier, role, auth.token
+      groupId, username, role, auth.token
     );
     setGroupMembers((current) => [...current, member]);
   }

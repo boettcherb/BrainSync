@@ -162,7 +162,7 @@ export async function leaveGroup(
 // the 'users' table, and cannot already be a member of the group.
 export async function addGroupMember(
   groupId: string,
-  memberId: string,
+  username: string,
   role: GroupRole,
   userId: string,
 ): Promise<GroupMember> {
@@ -194,30 +194,30 @@ export async function addGroupMember(
         };
         const userResult = await client.query<userResultRow>(
             `SELECT id, username, display_name FROM users
-              WHERE id = $1;`,
-            [memberId]
+              WHERE username = $1;`,
+            [username]
         ); 
         if (userResult.rowCount === 0) {
             throw new AppError('User not found', 404);
         }
+        const member = userResult.rows[0];
         // Add the member to the group
         const insertResult = await client.query(
             `INSERT INTO group_memberships (user_id, group_id, role)
               VALUES ($1, $2, $3)
               ON CONFLICT (user_id, group_id) DO NOTHING
               RETURNING *;`,
-            [memberId, groupId, role]
+            [member.id, groupId, role]
         );
         if (insertResult.rowCount === 0) {
             throw new AppError('User is already a group member', 409);
         }
         // No errors: commit the transaction and return a GroupMember
         await client.query('COMMIT');
-        const user = userResult.rows[0];
         return {
-            id: user.id,
-            username: user.username,
-            display_name: user.display_name,
+            id: member.id,
+            username: member.username,
+            display_name: member.display_name,
             role: role,
         }
     } catch (error) {

@@ -2,6 +2,7 @@ import express from 'express';
 import { requireAuth, type AuthenticatedRequest } from '../middleware/authMiddleware';
 import * as groupDB from '../db/groupRepository';
 import { AppError } from '../appError';
+import { GroupRole } from '../types/Group';
 
 const router = express.Router();
 router.use(requireAuth); // Authenticate all endpoints in this file
@@ -153,24 +154,28 @@ router.delete('/:groupId/members/me', async (req: AuthenticatedRequest, res) => 
     }
 });
 
-// POST /groups/:groupId/members/:memberId - Add a member to a group
-router.post('/:groupId/members/:memberId', async (req: AuthenticatedRequest, res) => {
+// POST /groups/:groupId/members - Add a member to a group
+router.post('/:groupId/members', async (req: AuthenticatedRequest, res) => {
     try {
         // Retrieve the userId from the authenticated request
-        // Retrieve groupId and memberId from the request parameters
+        // Retrieve groupId from the request parameters
         const userId = req.user!.userId;
         const groupId = req.params.groupId as string;
-        const memberId = req.params.memberId as string;
-        // Retrieve member role from the request body. Verify it is a valid role.
-        const { role } = req.body;
+        // Retrieve member username and role from the request body.
+        // Verify that both are valid.
+        const { username, role } = req.body;
+        if (typeof username !== 'string' || username.trim().length === 0) {
+            res.status(400).json({ message: 'Username is required' });
+            return;
+        }
         const validRoles = ['admin', 'editor', 'contributor', 'viewer'];
-        if (!validRoles.includes(role)) {
+        if (typeof role !== 'string' || !validRoles.includes(role)) {
             res.status(400).json({ message: 'Invalid group role' });
             return;
         }
         // Add the member to the group by calling the DB function
         const newMember = await groupDB.addGroupMember(
-            groupId, memberId, role, userId
+            groupId, username.trim().toLowerCase(), role as GroupRole, userId
         );
         res.status(201).json(newMember);
     } catch (error) {

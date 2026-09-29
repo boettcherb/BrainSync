@@ -115,18 +115,18 @@ export async function leaveGroup(
 // API request to add a member to a group
 export async function addGroupMember(
     groupId: string,
-    memberId: string,
+    username: string,
     role: GroupRole,
     token: string,
 ): Promise<GroupMember> {
-    const url = `${API_URL}/groups/${groupId}/members/${memberId}`;
+    const url = `${API_URL}/groups/${groupId}/members/`;
     const response = await fetch(url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ role }),
+        body: JSON.stringify({ username, role }),
     });
     const data = await response.json();
     if (!response.ok) {

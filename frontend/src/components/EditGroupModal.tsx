@@ -10,7 +10,7 @@ interface EditGroupModalProps {
   onUpdate: (groupId: string, newGroupData: GroupInput) => Promise<void>;
   onLeave: (groupId: string) => Promise<void>;
   onDelete: (groupId: string) => Promise<void>;
-  onAddMember: (groupId: string, identifier: string, role: GroupRole) => Promise<void>;
+  onAddMember: (groupId: string, username: string, role: GroupRole) => Promise<void>;
   onRemoveMember: (groupId: string, memberId: string) => Promise<void>;
 }
 
@@ -75,15 +75,15 @@ function EditGroupModal({
   }
 
   async function handleAddMember() {
-    const identifier = newMember.trim();
-    if (!identifier) {
-      setError('Enter a username or email address.');
+    const username = newMember.trim();
+    if (!username) {
+      setError('Enter a username.');
       return;
     }
     try {
       setError('');
       setIsLoading(true);
-      await onAddMember(group.id, identifier, newMemberRole);
+      await onAddMember(group.id, username, newMemberRole);
       setNewMember('');
       setNewMemberRole('viewer');
     } catch (err) {
@@ -287,7 +287,7 @@ function EditGroupModal({
                           id="new-group-member"
                           type="text"
                           className="form-control"
-                          placeholder="Username or email"
+                          placeholder="Username"
                           value={newMember}
                           onChange={(e) => setNewMember(e.target.value)}
                           disabled={isLoading}
