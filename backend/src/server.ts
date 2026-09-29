@@ -45,6 +45,7 @@ app.use('/auth', authLimiter, userRouter);
 // DELETE /groups/:groupId                   - Delete a specific group
 // GET    /groups/:groupId/members           - Get members of a specific group
 // DELETE /groups/:groupId/members/me        - Leave a specific group
+// POST   /groups/:groupId/members/:memberId - Add a member to a group
 // DELETE /groups/:groupId/members/:memberId - Remove a specific member from a group
 // GET    /groups/:groupId/calendars         - Get calendars for a specific group
 app.use('/groups', groupRouter);

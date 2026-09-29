@@ -1,6 +1,7 @@
 import express from 'express';
 import { requireAuth, type AuthenticatedRequest } from '../middleware/authMiddleware';
 import * as groupDB from '../db/groupRepository';
+import { AppError } from '../appError';
 
 const router = express.Router();
 router.use(requireAuth); // Authenticate all endpoints in this file
@@ -147,6 +148,36 @@ router.delete('/:groupId/members/me', async (req: AuthenticatedRequest, res) => 
         }
         res.status(204).send();
     } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+// POST /groups/:groupId/members/:memberId - Add a member to a group
+router.post('/:groupId/members/:memberId', async (req: AuthenticatedRequest, res) => {
+    try {
+        // Retrieve the userId from the authenticated request
+        // Retrieve groupId and memberId from the request parameters
+        const userId = req.user!.userId;
+        const groupId = req.params.groupId as string;
+        const memberId = req.params.memberId as string;
+        // Retrieve member role from the request body. Verify it is a valid role.
+        const { role } = req.body;
+        const validRoles = ['admin', 'editor', 'contributor', 'viewer'];
+        if (!validRoles.includes(role)) {
+            res.status(400).json({ message: 'Invalid group role' });
+            return;
+        }
+        // Add the member to the group by calling the DB function
+        const newMember = await groupDB.addGroupMember(
+            groupId, memberId, role, userId
+        );
+        res.status(201).json(newMember);
+    } catch (error) {
+        if (error instanceof AppError) {
+            res.status(error.statusCode).json({ message: error.message });
+            return;
+        }
         console.error(error);
         res.status(500).json({ message: "Internal server error" });
     }
