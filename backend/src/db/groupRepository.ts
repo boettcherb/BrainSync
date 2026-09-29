@@ -1,6 +1,7 @@
 import { pool } from "./pool";
 import type { GroupMember } from '../types/User';
 import type { Group, GroupInput, GroupRole, UserGroup } from '../types/Group';
+import { AppError } from "../appError";
 
 
 // Insert a new Group into the 'groups' table. The User with the given userId
@@ -155,22 +156,76 @@ export async function leaveGroup(
 }
 
 
-// Add a User to a Group by storing their group membership in the
-// 'group_memberships' table.
-export async function addUserToGroup(
-    userId: string,
-    groupId: string,
-    role: GroupRole,
-): Promise<boolean> {
-    if (role === 'owner') {
-        throw new Error("Cannot add a user to a group with the owner role");
+// Add a member to a group. The user adding the member have the required
+// permissions (must be owner adding a member with role < 'owner', or an admin
+// adding a member with role < 'admin'). The member being added must exist in
+// the 'users' table, and cannot already be a member of the group.
+export async function addGroupMember(
+  groupId: string,
+  memberId: string,
+  role: GroupRole,
+  userId: string,
+): Promise<GroupMember> {
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        // verify requester permissions
+        const resultRoles = await client.query(
+            `SELECT role FROM group_memberships
+              WHERE user_id = $1
+              AND group_id = $2
+              FOR UPDATE;`,
+            [userId, groupId]
+        );
+        if (resultRoles.rowCount === 0) {
+            throw new AppError("You do not have access to this group", 403);
+        }
+        const requesterRole = resultRoles.rows[0].role as GroupRole;
+        const allowed = role !== 'owner' && (requesterRole === 'owner' ||
+            (requesterRole === 'admin' && role !== 'admin'));
+        if (!allowed) {
+            throw new AppError("Insufficient permissions", 403);
+        }
+        // verify member is in the users table
+        type userResultRow = {
+            id: string,
+            username: string,
+            display_name: string
+        };
+        const userResult = await client.query<userResultRow>(
+            `SELECT id, username, display_name FROM users
+              WHERE id = $1;`,
+            [memberId]
+        ); 
+        if (userResult.rowCount === 0) {
+            throw new AppError('User not found', 404);
+        }
+        // Add the member to the group
+        const insertResult = await client.query(
+            `INSERT INTO group_memberships (user_id, group_id, role)
+              VALUES ($1, $2, $3)
+              ON CONFLICT (user_id, group_id) DO NOTHING
+              RETURNING *;`,
+            [memberId, groupId, role]
+        );
+        if (insertResult.rowCount === 0) {
+            throw new AppError('User is already a group member', 409);
+        }
+        // No errors: commit the transaction and return a GroupMember
+        await client.query('COMMIT');
+        const user = userResult.rows[0];
+        return {
+            id: user.id,
+            username: user.username,
+            display_name: user.display_name,
+            role: role,
+        }
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
     }
-    const result = await pool.query(
-        `INSERT INTO group_memberships (user_id, group_id, role)
-          VALUES ($1, $2, $3);`,
-        [userId, groupId, role]
-    );
-    return result.rowCount === 1;
 }
 
 
