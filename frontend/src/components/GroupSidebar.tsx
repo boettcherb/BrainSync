@@ -44,7 +44,6 @@ function GroupSidebar({
         <div className="list-group mb-4">
           {groups.map((group) => {
             const isActive = activeGroup?.id === group.id;
-            const canEdit = group.role === 'owner' || group.role === 'admin';
             return (
               <div
                 key={group.id}
@@ -70,7 +69,7 @@ function GroupSidebar({
                     {group.role}
                   </div>
                 </button>
-                {isActive && canEdit && (
+                {isActive && (
                   <button
                     type="button"
                     className="btn border-0 rounded-0 px-3 text-white"
