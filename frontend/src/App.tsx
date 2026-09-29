@@ -8,7 +8,7 @@ import EditGroupModal from './components/EditGroupModal';
 import * as authAPI from './api/auth';
 import * as groupAPI from './api/groups';
 import type { User, SignupInput, GroupMember } from './types/User';
-import type { UserGroup, GroupInput } from './types/Group';
+import type { UserGroup, GroupInput, GroupRole } from './types/Group';
 
 interface AuthState {
   user: User;
@@ -113,6 +113,29 @@ function App() {
     setActiveGroup(null);
   }
 
+  async function removeGroupMember(
+    groupId: string,
+    memberId: string
+  ): Promise<void> {
+    if (!auth) return;
+    await groupAPI.removeGroupMember(groupId, memberId, auth.token);
+    setGroupMembers((current) =>
+      current.filter((member) => member.id !== memberId)
+    );
+  }
+
+  async function addGroupMember(
+    groupId: string,
+    identifier: string,
+    role: GroupRole
+  ): Promise<void> {
+    if (!auth) return;
+    const member = await groupAPI.addGroupMember(
+      groupId, identifier, role, auth.token
+    );
+    setGroupMembers((current) => [...current, member]);
+  }
+
   // If the user is not logged in, show the login page.
   if (!auth) {
     return <LoginPage login={login} signup={signup} />
@@ -146,10 +169,14 @@ function App() {
       {showEditGroup && activeGroup && (
         <EditGroupModal
           group={activeGroup}
+          groupMembers={groupMembers}
+          currentUserId={auth.user.id}
           onClose={() => setShowEditGroup(false)}
           onUpdate={updateGroup}
           onLeave={leaveGroup}
           onDelete={deleteGroup}
+          onAddMember={addGroupMember}
+          onRemoveMember={removeGroupMember}
         />
       )}
     </>
