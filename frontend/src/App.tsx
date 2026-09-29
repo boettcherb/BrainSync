@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import LoginPage from './components/LoginPage';
+import Header from './components/Header';
 import CreateGroupModal from './components/CreateGroupModal';
 import EditGroupModal from './components/EditGroupModal';
 import * as authAPI from './api/auth';
@@ -118,30 +119,7 @@ function App() {
   return (
     <>
       <div className="min-vh-100 d-flex flex-column">
-        {/* Header */}
-        <header className="border-bottom bg-body px-4 py-3">
-          <div className="d-flex justify-content-between align-items-center">
-            <div>
-              <h1 className="h4 mb-0">BrainSync</h1>
-            </div>
-            <div className="d-flex align-items-center gap-3">
-              <div className="text-end">
-                <div className="fw-semibold">
-                  {auth.user.display_name}
-                </div>
-                <div className="small text-body-secondary">
-                  @{auth.user.username}
-                </div>
-              </div>
-              <button
-                className="btn btn-outline-secondary btn-sm"
-                onClick={logout}
-              >
-                Log Out
-              </button>
-            </div>
-          </div>
-        </header>
+        <Header user={auth.user} onLogout={logout} />
         {/* Main layout */}
         <div className="d-flex flex-grow-1">
           {/* Group sidebar */}
