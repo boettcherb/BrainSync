@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import LoginPage from './components/LoginPage';
 import Header from './components/Header';
 import GroupSidebar from './components/GroupSidebar';
+import CalendarView from './components/CalendarView';
 import CreateGroupModal from './components/CreateGroupModal';
 import EditGroupModal from './components/EditGroupModal';
 import * as authAPI from './api/auth';
@@ -121,7 +122,6 @@ function App() {
     <>
       <div className="min-vh-100 d-flex flex-column">
         <Header user={auth.user} onLogout={logout} />
-        {/* Main layout */}
         <div className="d-flex flex-grow-1">
           <GroupSidebar
             groups={groups}
@@ -131,55 +131,10 @@ function App() {
             onCreateGroup={() => setShowCreateGroup(true)}
             onEditGroup={() => setShowEditGroup(true)}
           />
-          {/* Main calendar area */}
-          <main className="flex-grow-1 p-4">
-            {!activeGroup ? (
-              <div className="h-100 d-flex align-items-center justify-content-center">
-                <div className="text-center">
-                  <h2 className="h4">
-                    No groups yet
-                  </h2>
-                  <p className="text-body-secondary">
-                    Create a group to start creating calendars.
-                  </p>
-                  <button
-                    className="btn btn-primary"
-                    type="button"
-                    onClick={() => setShowCreateGroup(true)}
-                  >
-                    Create Group
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <h2 className="mb-3">
-                  {activeGroup.name}
-                </h2>
-                <div className="card">
-                  <div className="card-body">
-                    <p>
-                      <strong>Description:</strong>{' '}
-                      {activeGroup.description || 'No description'}
-                    </p>
-                    <p>
-                      <strong>Your role:</strong>{' '}{activeGroup.role}
-                    </p>
-                    <p>
-                      <strong>Group ID:</strong>{' '}{activeGroup.id}
-                    </p>
-                    <p className="mb-0">
-                      <strong>Created:</strong>{' '}
-                      {new Date(activeGroup.created_at).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-4 border rounded p-5 text-center text-body-secondary">
-                  Calendar view will go here.
-                </div>
-              </div>
-            )}
-          </main>
+          <CalendarView
+            activeGroup={activeGroup}
+            onCreateGroup={() => setShowCreateGroup(true)}
+          />
         </div>
       </div>
       {showCreateGroup && (
