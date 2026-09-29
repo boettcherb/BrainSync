@@ -5,7 +5,7 @@ import type { GroupMember } from "../types/User";
 const API_URL = import.meta.env.VITE_BACKEND_API_URL;
 
 // API request to get all groups a user is a member of
-export async function getUserGroupsRequest(token: string): Promise<UserGroup[]> {
+export async function getUserGroups(token: string): Promise<UserGroup[]> {
     const response = await fetch(`${API_URL}/groups`, {
         method: 'GET',
         headers: {
@@ -20,7 +20,7 @@ export async function getUserGroupsRequest(token: string): Promise<UserGroup[]> 
 }
 
 // API Request to create a group
-export async function createGroupRequest(
+export async function createGroup(
     newGroup: GroupInput,
     token: string,
 ): Promise<Group> {
@@ -40,7 +40,7 @@ export async function createGroupRequest(
 }
 
 // API request to update group details
-export async function updateGroupRequest(
+export async function updateGroup(
     groupId: string,
     newGroupData: GroupInput,
     token: string,
@@ -61,7 +61,7 @@ export async function updateGroupRequest(
 }
 
 // API request to delete a group
-export async function deleteGroupRequest(
+export async function deleteGroup(
     groupId: string,
     token: string,
 ): Promise<void> {
@@ -78,9 +78,9 @@ export async function deleteGroupRequest(
 }
 
 // API request to leave a group
-export async function leaveGroupRequest(
+export async function leaveGroup(
     groupId: string,
-    token: string
+    token: string,
 ): Promise<void> {
     const response = await fetch(`${API_URL}/groups/${groupId}/members/me`, {
         method: 'DELETE',
@@ -95,10 +95,10 @@ export async function leaveGroupRequest(
 }
 
 // API request to remove a specific member from a group
-export async function removeGroupMemberRequest(
+export async function removeGroupMember(
     groupId: string,
     memberId: string,
-    token: string
+    token: string,
 ): Promise<void> {
     const url = `${API_URL}/groups/${groupId}/members/${memberId}`;
     const response = await fetch(url, {
@@ -114,7 +114,7 @@ export async function removeGroupMemberRequest(
 }
 
 // API request to retrieve the members of a group
-export async function getGroupMembersRequest(
+export async function getGroupMembers(
     groupId: string,
     token: string,
 ): Promise<GroupMember[]> {

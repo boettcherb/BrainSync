@@ -4,7 +4,7 @@ import type { SignupInput } from '../types/User';
 const API_URL = import.meta.env.VITE_BACKEND_API_URL;
 
 // API request for user authentication (login)
-export async function loginRequest(email: string, password: string) {
+export async function login(email: string, password: string) {
   const response = await fetch(`${API_URL}/auth/login`, {
     method: 'POST',
     headers: {
@@ -20,7 +20,7 @@ export async function loginRequest(email: string, password: string) {
 }
 
 // API request for user registration (signup)
-export async function signupRequest(newUser: SignupInput) {
+export async function signup(newUser: SignupInput) {
   const response = await fetch(`${API_URL}/auth/signup`, {
     method: 'POST',
     headers: {

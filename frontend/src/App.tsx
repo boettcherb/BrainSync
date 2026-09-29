@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import LoginPage from './components/LoginPage';
 import CreateGroupModal from './components/CreateGroupModal';
 import EditGroupModal from './components/EditGroupModal';
-import { loginRequest, signupRequest } from './api/auth';
+import * as authAPI from './api/auth';
 import * as groupAPI from './api/groups';
 import type { User, SignupInput, GroupMember } from './types/User';
 import type { UserGroup, GroupInput } from './types/Group';
@@ -28,7 +28,7 @@ function App() {
         setActiveGroup(null);
         return;
       }
-      const userGroups = await groupAPI.getUserGroupsRequest(auth.token);
+      const userGroups = await groupAPI.getUserGroups(auth.token);
       setGroups(userGroups);
       setActiveGroup(userGroups[0] ?? null);
     }
@@ -42,7 +42,7 @@ function App() {
         setGroupMembers([]);
         return;
       }
-      const members = await groupAPI.getGroupMembersRequest(
+      const members = await groupAPI.getGroupMembers(
         activeGroup.id,
         auth.token
       );
@@ -53,7 +53,7 @@ function App() {
 
   async function createGroup(newGroup: GroupInput): Promise<void> {
     if (!auth) return;
-    const group = await groupAPI.createGroupRequest(newGroup, auth.token);
+    const group = await groupAPI.createGroup(newGroup, auth.token);
     const userGroup: UserGroup = { ...group, role: 'owner' };
     setGroups((current) => [...current, userGroup]);
     setActiveGroup(userGroup);
@@ -61,7 +61,7 @@ function App() {
 
   async function updateGroup(groupId: string, newGroupData: GroupInput) {
     if (!auth) return;
-    const updatedGroup = await groupAPI.updateGroupRequest(
+    const updatedGroup = await groupAPI.updateGroup(
       groupId,
       newGroupData,
       auth.token
@@ -78,7 +78,7 @@ function App() {
 
   async function deleteGroup(groupId: string) {
     if (!auth) return;
-    await groupAPI.deleteGroupRequest(groupId, auth.token);
+    await groupAPI.deleteGroup(groupId, auth.token);
     const remainingGroups = groups.filter((group) => group.id !== groupId);
     setGroups(remainingGroups);
     setActiveGroup(remainingGroups[0] ?? null);
@@ -86,7 +86,7 @@ function App() {
 
   async function leaveGroup(groupId: string) {
     if (!auth) return;
-    await groupAPI.leaveGroupRequest(groupId, auth.token);
+    await groupAPI.leaveGroup(groupId, auth.token);
     const remainingGroups = groups.filter(
       (group) => group.id !== groupId
     );
@@ -95,12 +95,12 @@ function App() {
   }
 
   async function login(email: string, password: string): Promise<void> {
-    const data = await loginRequest(email, password);
+    const data = await authAPI.login(email, password);
     setAuth({ user: data.user, token: data.token });
   }
 
   async function signup(newUser: SignupInput): Promise<void> {
-    const data = await signupRequest(newUser);
+    const data = await authAPI.signup(newUser);
     setAuth({ user: data.user, token: data.token });
   }
 
