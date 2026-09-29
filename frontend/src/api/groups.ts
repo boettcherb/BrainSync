@@ -1,4 +1,5 @@
 import type { Group, UserGroup, GroupInput } from "../types/Group";
+import type { GroupMember } from "../types/User";
 
 // Backend API URL
 const API_URL = import.meta.env.VITE_BACKEND_API_URL;
@@ -110,4 +111,22 @@ export async function removeGroupMemberRequest(
         const data = await response.json().catch(() => null);
         throw new Error(data?.message || "Error removing group member");
     }
+}
+
+// API request to retrieve the members of a group
+export async function getGroupMembersRequest(
+    groupId: string,
+    token: string,
+): Promise<GroupMember[]> {
+    const response = await fetch(`${API_URL}/groups/${groupId}/members`, {
+        method: 'GET',
+        headers: {
+            Authorization: `Bearer ${token}`,
+        }
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.message || "Error retrieving group members");
+    }
+    return data;
 }
