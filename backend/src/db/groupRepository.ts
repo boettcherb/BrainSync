@@ -1,5 +1,5 @@
 import { pool } from "./pool";
-import type { User, PublicUser, CreateUserInput } from '../types/User';
+import type { User, PublicUser, CreateUserInput, GroupMember } from '../types/User';
 import type { Group, GroupInput, GroupRole, UserGroup } from '../types/Group';
 
 
@@ -45,7 +45,10 @@ export async function createUser(newUser: CreateUserInput): Promise<PublicUser> 
 // will be the group owner. Use a transaction to ensure the group is created,
 // and that the User with the given userId is stored as the group owner
 // in the 'group_memberships' table. 
-export async function createGroup(newGroup: GroupInput, userId: string): Promise<Group> {
+export async function createGroup(
+    newGroup: GroupInput,
+    userId: string
+): Promise<Group> {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
@@ -97,7 +100,8 @@ export async function addUserToGroup(
 export async function getGroupsByUserId(userId: string): Promise<UserGroup[]> {
     const result = await pool.query<UserGroup>(
         `SELECT g.id, g.name, g.description, g.created_at, g.updated_at, gm.role
-          FROM groups g JOIN group_memberships gm
+          FROM groups g
+          JOIN group_memberships gm
             ON g.id = gm.group_id
           WHERE gm.user_id = $1
           ORDER BY g.created_at;`,
@@ -209,4 +213,28 @@ export async function removeGroupMember(
         [groupId, memberId, userId]
     );
     return result.rowCount === 1;
+}
+
+
+// Retrieve all the members of a group.
+export async function getGroupMembers(groupId: string): Promise<GroupMember[]> {
+    const result = await pool.query<GroupMember>(
+        `SELECT u.id, u.username, u.display_name, gm.role
+          FROM group_memberships AS gm
+          JOIN users AS u
+            ON gm.user_id = u.id
+          WHERE gm.group_id = $1
+          ORDER BY
+            CASE gm.role
+              WHEN 'owner' THEN 1
+              WHEN 'admin' THEN 2
+              WHEN 'editor' THEN 3
+              WHEN 'contributor' THEN 4
+              WHEN 'viewer' THEN 5
+              ELSE 999
+            END,
+            u.display_name;`,
+        [groupId]
+    );
+    return result.rows;
 }
