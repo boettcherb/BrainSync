@@ -38,77 +38,8 @@ export async function createGroup(
 }
 
 
-// Add a User to a Group by storing their group membership in the
-// 'group_memberships' table.
-export async function addUserToGroup(
-    userId: string,
-    groupId: string,
-    role: GroupRole,
-): Promise<boolean> {
-    if (role === 'owner') {
-        throw new Error("Cannot add a user to a group with the owner role");
-    }
-    const result = await pool.query(
-        `INSERT INTO group_memberships (user_id, group_id, role)
-          VALUES ($1, $2, $3);`,
-        [userId, groupId, role]
-    );
-    return result.rowCount === 1;
-}
-
-
-// Retrieve all groups that the User with the given userId is a part of.
-// Achieve this by joining the 'groups' and 'group_memberships' tables.
-export async function getGroupsByUserId(userId: string): Promise<UserGroup[]> {
-    const result = await pool.query<UserGroup>(
-        `SELECT g.id, g.name, g.description, g.created_at, g.updated_at, gm.role
-          FROM groups g
-          JOIN group_memberships gm
-            ON g.id = gm.group_id
-          WHERE gm.user_id = $1
-          ORDER BY g.created_at;`,
-        [userId]
-    );
-    return result.rows;
-}
-
-
-// Find the role that a user has within a group
-export async function getUserRoleInGroup(
-    userId: string,
-    groupId: string,
-): Promise<GroupRole | null> {
-    const result = await pool.query<{ role: GroupRole }>(
-        `SELECT role FROM group_memberships
-          WHERE user_id = $1
-          AND group_id = $2;`,
-        [userId, groupId]
-    );
-    return result.rows[0]?.role ?? null;
-}
-
-
-// Delete a group from the database
-export async function deleteGroup(
-    groupId: string,
-    userId: string,
-): Promise<boolean> {
-    const result = await pool.query(
-        `DELETE FROM groups g
-          WHERE g.id = $1
-          AND EXISTS (
-            SELECT 1 FROM group_memberships gm
-              WHERE gm.group_id = g.id
-              AND gm.user_id = $2
-              AND gm.role = 'owner'
-            );`,
-        [groupId, userId]
-    );
-    return result.rowCount === 1;
-}
-
-
-// Update a group in the database. Return null if the row was not updated
+// Update a group in the database. Only the group owner or group admins can
+// update the group. Return null if the row was not updated
 export async function updateGroup(
     groupId: string,
     groupData: GroupInput,
@@ -131,7 +62,83 @@ export async function updateGroup(
 }
 
 
-// Leave a group. An owner cannot leave the group. They must transfer
+// Delete a group from the 'groups' table. Only the group
+// owner can delete a group
+export async function deleteGroup(
+    groupId: string,
+    userId: string,
+): Promise<boolean> {
+    const result = await pool.query(
+        `DELETE FROM groups g
+          WHERE g.id = $1
+          AND EXISTS (
+            SELECT 1 FROM group_memberships gm
+              WHERE gm.group_id = g.id
+              AND gm.user_id = $2
+              AND gm.role = 'owner'
+            );`,
+        [groupId, userId]
+    );
+    return result.rowCount === 1;
+}
+
+
+// Retrieve all groups that the User with the given userId is a part of.
+// Achieve this by joining the 'groups' and 'group_memberships' tables.
+export async function getGroupsByUserId(userId: string): Promise<UserGroup[]> {
+    const result = await pool.query<UserGroup>(
+        `SELECT g.id, g.name, g.description, g.created_at, g.updated_at, gm.role
+          FROM groups g
+          JOIN group_memberships gm
+            ON g.id = gm.group_id
+          WHERE gm.user_id = $1
+          ORDER BY g.created_at;`,
+        [userId]
+    );
+    return result.rows;
+}
+
+
+// Retrieve all the members of a group.
+export async function getGroupMembers(groupId: string): Promise<GroupMember[]> {
+    const result = await pool.query<GroupMember>(
+        `SELECT u.id, u.username, u.display_name, gm.role
+          FROM group_memberships AS gm
+          JOIN users AS u
+            ON gm.user_id = u.id
+          WHERE gm.group_id = $1
+          ORDER BY
+            CASE gm.role
+              WHEN 'owner' THEN 1
+              WHEN 'admin' THEN 2
+              WHEN 'editor' THEN 3
+              WHEN 'contributor' THEN 4
+              WHEN 'viewer' THEN 5
+              ELSE 999
+            END,
+            u.display_name;`,
+        [groupId]
+    );
+    return result.rows;
+}
+
+
+// Find the role that a user has within a group
+export async function getUserRoleInGroup(
+    userId: string,
+    groupId: string,
+): Promise<GroupRole | null> {
+    const result = await pool.query<{ role: GroupRole }>(
+        `SELECT role FROM group_memberships
+          WHERE user_id = $1
+          AND group_id = $2;`,
+        [userId, groupId]
+    );
+    return result.rows[0]?.role ?? null;
+}
+
+
+// Leave a group. An owner cannot leave a group. They must transfer
 // ownership first.
 export async function leaveGroup(
     groupId: string,
@@ -143,6 +150,25 @@ export async function leaveGroup(
           AND user_id = $2
           AND role <> 'owner';`,
         [groupId, userId]
+    );
+    return result.rowCount === 1;
+}
+
+
+// Add a User to a Group by storing their group membership in the
+// 'group_memberships' table.
+export async function addUserToGroup(
+    userId: string,
+    groupId: string,
+    role: GroupRole,
+): Promise<boolean> {
+    if (role === 'owner') {
+        throw new Error("Cannot add a user to a group with the owner role");
+    }
+    const result = await pool.query(
+        `INSERT INTO group_memberships (user_id, group_id, role)
+          VALUES ($1, $2, $3);`,
+        [userId, groupId, role]
     );
     return result.rowCount === 1;
 }
@@ -175,28 +201,4 @@ export async function removeGroupMember(
         [groupId, memberId, userId]
     );
     return result.rowCount === 1;
-}
-
-
-// Retrieve all the members of a group.
-export async function getGroupMembers(groupId: string): Promise<GroupMember[]> {
-    const result = await pool.query<GroupMember>(
-        `SELECT u.id, u.username, u.display_name, gm.role
-          FROM group_memberships AS gm
-          JOIN users AS u
-            ON gm.user_id = u.id
-          WHERE gm.group_id = $1
-          ORDER BY
-            CASE gm.role
-              WHEN 'owner' THEN 1
-              WHEN 'admin' THEN 2
-              WHEN 'editor' THEN 3
-              WHEN 'contributor' THEN 4
-              WHEN 'viewer' THEN 5
-              ELSE 999
-            END,
-            u.display_name;`,
-        [groupId]
-    );
-    return result.rows;
 }
