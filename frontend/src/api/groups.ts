@@ -1,4 +1,4 @@
-import type { Group, UserGroup, GroupInput } from "../types/Group";
+import type { Group, UserGroup, GroupInput, GroupRole } from "../types/Group";
 import type { GroupMember } from "../types/User";
 
 // Backend API URL
@@ -77,6 +77,24 @@ export async function deleteGroup(
     }
 }
 
+// API request to retrieve the members of a group
+export async function getGroupMembers(
+    groupId: string,
+    token: string,
+): Promise<GroupMember[]> {
+    const response = await fetch(`${API_URL}/groups/${groupId}/members`, {
+        method: 'GET',
+        headers: {
+            Authorization: `Bearer ${token}`,
+        }
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.message || "Error retrieving group members");
+    }
+    return data;
+}
+
 // API request to leave a group
 export async function leaveGroup(
     groupId: string,
@@ -92,6 +110,29 @@ export async function leaveGroup(
         const data = await response.json().catch(() => null);
         throw new Error(data?.message || "Error leaving group");
     }
+}
+
+// API request to add a member to a group
+export async function addGroupMember(
+    groupId: string,
+    memberId: string,
+    role: GroupRole,
+    token: string,
+): Promise<GroupMember> {
+    const url = `${API_URL}/groups/${groupId}/members/${memberId}`;
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ role }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.message || "Error adding member to group");
+    }
+    return data;
 }
 
 // API request to remove a specific member from a group
@@ -111,22 +152,4 @@ export async function removeGroupMember(
         const data = await response.json().catch(() => null);
         throw new Error(data?.message || "Error removing group member");
     }
-}
-
-// API request to retrieve the members of a group
-export async function getGroupMembers(
-    groupId: string,
-    token: string,
-): Promise<GroupMember[]> {
-    const response = await fetch(`${API_URL}/groups/${groupId}/members`, {
-        method: 'GET',
-        headers: {
-            Authorization: `Bearer ${token}`,
-        }
-    });
-    const data = await response.json();
-    if (!response.ok) {
-        throw new Error(data.message || "Error retrieving group members");
-    }
-    return data;
 }
