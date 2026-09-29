@@ -108,7 +108,26 @@ router.delete('/:groupId', async (req: AuthenticatedRequest, res) => {
 
 // GET /groups/:groupId/members - Get members of a specific group
 router.get('/:groupId/members', async (req: AuthenticatedRequest, res) => {
-    res.send(`Get members of group with ID ${req.params.groupId}`);
+    try {
+        // Retrieve the userId from the authenticated request
+        // and the groupId from the request parameters.
+        const userId = req.user!.userId;
+        const groupId = req.params.groupId as string;
+        // Ensure the user is a member of the group
+        const role = await groupDB.getUserRoleInGroup(userId, groupId);
+        if (!role) {
+            res.status(403).json({
+                message: "You do not have access to this group"
+            });
+            return;
+        }
+        // Retrieve and return a list of the group's members from the database
+        const groupMembers = await groupDB.getGroupMembers(groupId);
+        res.json(groupMembers);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
 });
 
 
