@@ -1,3 +1,5 @@
+import type { GroupRole } from "./Group";
+
 // User data type: Matches the 'users' table in the database schema.
 export interface User {
     id:             string;
@@ -33,4 +35,14 @@ export interface CreateUserInput {
   username: string;
   display_name: string;
   password_hash: string;
+}
+
+// GroupMember data type: Represents a user in the context of a group. Adds
+// group role and removes fields like password_hash, created_at, updated_at,
+// email, and email_verified.
+export interface GroupMember {
+    id:           string;
+    username:     string;
+    display_name: string;
+    role:         GroupRole;
 }
