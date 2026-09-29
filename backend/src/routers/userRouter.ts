@@ -2,7 +2,7 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import validator from 'validator';
-import * as groupDB from '../db/groupRepository'
+import * as userDB from '../db/userRepository';
 import type { User, PublicUser, SignupInput } from '../types/User';
 
 const router = express.Router();
@@ -97,7 +97,7 @@ router.post('/login', async (req, res) => {
         }
         // Find user by email (case-insensitive). If not found, return 401 error
         const normalizedEmail = email.trim().toLowerCase();
-        const user = await groupDB.getUserByEmail(normalizedEmail);
+        const user = await userDB.getUserByEmail(normalizedEmail);
         if (!user) {
             res.status(401).json({ message: "Invalid email or password" });
             return;
@@ -129,19 +129,19 @@ router.post('/signup', async (req, res) => {
             return;
         }
         // Check if a user with the same email already exists
-        if ((await groupDB.getUserByEmail(validation.data.email)) !== null) {
+        if ((await userDB.getUserByEmail(validation.data.email)) !== null) {
             res.status(409).json({ message: "Email already in use" });
             return;
         }
         // check if a user with the same username already exists
-        if ((await groupDB.getUserByUsername(validation.data.username)) !== null) {
+        if ((await userDB.getUserByUsername(validation.data.username)) !== null) {
             res.status(409).json({ message: "Username already in use" });
             return;
         }
         // Encrypt the password to get a password_hash
         const password_hash = await bcrypt.hash(validation.data.password, 10);
         // Add the new user to the database
-        const user = await groupDB.createUser({
+        const user = await userDB.createUser({
             email: validation.data.email,
             username: validation.data.username,
             display_name: validation.data.display_name,
