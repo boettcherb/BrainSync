@@ -4,7 +4,7 @@ import CreateGroupModal from './components/CreateGroupModal';
 import EditGroupModal from './components/EditGroupModal';
 import { loginRequest, signupRequest } from './api/auth';
 import * as groupAPI from './api/groups';
-import type { User, SignupInput } from './types/User';
+import type { User, SignupInput, GroupMember } from './types/User';
 import type { UserGroup, GroupInput } from './types/Group';
 
 interface AuthState {
@@ -16,10 +16,11 @@ function App() {
   const [auth, setAuth] = useState<AuthState | null>(null);
   const [groups, setGroups] = useState<UserGroup[]>([]);
   const [activeGroup, setActiveGroup] = useState<UserGroup | null>(null);
+  const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
   const [showCreateGroup, setShowCreateGroup] = useState<boolean>(false);
   const [showEditGroup, setShowEditGroup] = useState<boolean>(false);
 
-  // Load groups whenever authentication changes.
+  // Load user's groups whenever authentication changes
   useEffect(() => {
     async function loadUserGroups() {
       if (!auth) {
@@ -33,6 +34,22 @@ function App() {
     }
     loadUserGroups();
   }, [auth]);
+
+  // Load members of the active group whenever the active group changes
+  useEffect(() => {
+    async function loadGroupMembers() {
+      if (!auth || !activeGroup) {
+        setGroupMembers([]);
+        return;
+      }
+      const members = await groupAPI.getGroupMembersRequest(
+        activeGroup.id,
+        auth.token
+      );
+      setGroupMembers(members);
+    }
+    loadGroupMembers();
+  }, [auth, activeGroup]);
 
   async function createGroup(newGroup: GroupInput): Promise<void> {
     if (!auth) return;
@@ -129,50 +146,116 @@ function App() {
         <div className="d-flex flex-grow-1">
           {/* Group sidebar */}
           <aside
-            className="border-end p-3"
-            style={{ width: '240px', minWidth: '240px' }}
+            className="border-end p-3 d-flex flex-column"
+            style={{ width: '260px', minWidth: '260px' }}
           >
+            {/* Groups header */}
             <div className="d-flex justify-content-between align-items-center mb-3">
               <h2 className="h6 mb-0">Groups</h2>
               <button
                 className="btn btn-primary btn-sm"
                 type="button"
                 onClick={() => setShowCreateGroup(true)}
+                title="Create group"
               >
-                +
+                <i className="bi bi-plus-lg" />
               </button>
             </div>
+            {/* Group list */}
             {groups.length === 0 ? (
               <p className="text-body-secondary small">
                 No groups yet.
               </p>
             ) : (
-              <div className="list-group">
-                {groups.map((group) => (
-                  <button
-                    key={group.id}
-                    type="button"
-                    className={`list-group-item list-group-item-action
-                      ${activeGroup?.id === group.id ? 'active' : ''}`
-                    }
-                    onClick={() => setActiveGroup(group)}
-                  >
-                    <div className="fw-semibold">{group.name}</div>
-                    <div className="small">{group.role}</div>
-                    {activeGroup?.id === group.id &&
-                      (group.role === 'owner' || group.role === 'admin') && (
-                      <div className="mt-2">
-                        <button
-                          className="btn btn-sm me-2 text-white bg-primary"
-                          type="button"
-                          onClick={() => setShowEditGroup(true)}
+              <div className="list-group mb-4">
+                {groups.map((group) => {
+                  const isActive = activeGroup?.id === group.id;
+                  const canEdit = group.role === 'owner' || group.role === 'admin';
+                  return (
+                    <div
+                      key={group.id}
+                      className={`list-group-item p-0 d-flex align-items-stretch ${
+                        isActive ? 'active' : ''
+                      }`}
+                    >
+                      {/* Select group */}
+                      <button
+                        type="button"
+                        className={`btn flex-grow-1 text-start border-0 rounded-0 py-2 px-3 ${
+                          isActive ? 'text-white' : ''
+                        }`}
+                        onClick={() => setActiveGroup(group)}
+                      >
+                        <div className="fw-semibold">
+                          {group.name}
+                        </div>
+                        <div
+                          className={`small ${
+                            isActive
+                              ? 'text-white-50'
+                              : 'text-body-secondary'
+                          }`}
                         >
-                          <i className="bi bi-pencil"></i>
+                          {group.role}
+                        </div>
+                      </button>
+                      {/* Edit group */}
+                      {isActive && canEdit && (
+                        <button
+                          type="button"
+                          className="btn border-0 rounded-0 px-3 text-white"
+                          onClick={() => setShowEditGroup(true)}
+                          title="Edit group"
+                        >
+                          <i className="bi bi-pencil" />
                         </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {/* Active group members */}
+            {activeGroup && (
+              <div className="border-top pt-3">
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <h2 className="h6 mb-0">Members</h2>
+                  <span className="badge text-bg-secondary">
+                    {groupMembers.length}
+                  </span>
+                </div>
+                {groupMembers.length === 0 ? (
+                  <p className="small text-body-secondary mb-0">
+                    No members found.
+                  </p>
+                ) : (
+                  <div className="d-flex flex-column gap-2">
+                    {groupMembers.map((member) => (
+                      <div
+                        key={member.id}
+                        className="d-flex align-items-center justify-content-between"
+                      >
+                        <div className="overflow-hidden">
+                          <div
+                            className="small fw-semibold text-truncate"
+                            title={member.display_name}
+                          >
+                            {member.display_name}
+                          </div>
+                          <div
+                            className="small text-body-secondary text-truncate"
+                            title={`@${member.username}`}
+                          >
+                            @{member.username}
+                          </div>
+                        </div>
+                        <span className="badge text-bg-light border ms-2">
+                          {member.role}
+                        </span>
                       </div>
-                    )}
-                  </button>
-                ))}
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </aside>
