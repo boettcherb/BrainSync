@@ -5,8 +5,8 @@ import GroupSidebar from './components/GroupSidebar';
 import CalendarView from './components/CalendarView';
 import CreateGroupModal from './components/CreateGroupModal';
 import EditGroupModal from './components/EditGroupModal';
-import * as authAPI from './api/auth';
-import * as groupAPI from './api/groups';
+import * as authAPI from './api/authAPI';
+import * as groupAPI from './api/groupAPI';
 import type { User, SignupInput, GroupMember } from './types/User';
 import type { UserGroup, GroupInput, GroupRole } from './types/Group';
 
