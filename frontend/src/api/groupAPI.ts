@@ -1,10 +1,11 @@
-import type { Group, UserGroup, GroupInput } from "../types/Group";
+import type { Group, UserGroup, GroupInput, GroupRole } from "../types/Group";
+import type { GroupMember } from "../types/User";
 
 // Backend API URL
 const API_URL = import.meta.env.VITE_BACKEND_API_URL;
 
 // API request to get all groups a user is a member of
-export async function getUserGroupsRequest(token: string): Promise<UserGroup[]> {
+export async function getUserGroups(token: string): Promise<UserGroup[]> {
     const response = await fetch(`${API_URL}/groups`, {
         method: 'GET',
         headers: {
@@ -19,7 +20,7 @@ export async function getUserGroupsRequest(token: string): Promise<UserGroup[]> 
 }
 
 // API Request to create a group
-export async function createGroupRequest(
+export async function createGroup(
     newGroup: GroupInput,
     token: string,
 ): Promise<Group> {
@@ -39,7 +40,7 @@ export async function createGroupRequest(
 }
 
 // API request to update group details
-export async function updateGroupRequest(
+export async function updateGroup(
     groupId: string,
     newGroupData: GroupInput,
     token: string,
@@ -60,7 +61,7 @@ export async function updateGroupRequest(
 }
 
 // API request to delete a group
-export async function deleteGroupRequest(
+export async function deleteGroup(
     groupId: string,
     token: string,
 ): Promise<void> {
@@ -76,10 +77,28 @@ export async function deleteGroupRequest(
     }
 }
 
-// API request to leave a group
-export async function leaveGroupRequest(
+// API request to retrieve the members of a group
+export async function getGroupMembers(
     groupId: string,
-    token: string
+    token: string,
+): Promise<GroupMember[]> {
+    const response = await fetch(`${API_URL}/groups/${groupId}/members`, {
+        method: 'GET',
+        headers: {
+            Authorization: `Bearer ${token}`,
+        }
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.message || "Error retrieving group members");
+    }
+    return data;
+}
+
+// API request to leave a group
+export async function leaveGroup(
+    groupId: string,
+    token: string,
 ): Promise<void> {
     const response = await fetch(`${API_URL}/groups/${groupId}/members/me`, {
         method: 'DELETE',
@@ -93,11 +112,34 @@ export async function leaveGroupRequest(
     }
 }
 
+// API request to add a member to a group
+export async function addGroupMember(
+    groupId: string,
+    username: string,
+    role: GroupRole,
+    token: string,
+): Promise<GroupMember> {
+    const url = `${API_URL}/groups/${groupId}/members/`;
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ username, role }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.message || "Error adding member to group");
+    }
+    return data;
+}
+
 // API request to remove a specific member from a group
-export async function removeGroupMemberRequest(
+export async function removeGroupMember(
     groupId: string,
     memberId: string,
-    token: string
+    token: string,
 ): Promise<void> {
     const url = `${API_URL}/groups/${groupId}/members/${memberId}`;
     const response = await fetch(url, {

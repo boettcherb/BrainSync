@@ -103,9 +103,6 @@ function CreateGroupModal({ onClose, onCreate }: CreateGroupModalProps) {
                     rows={3}
                   />
                 </div>
-                <p className="small text-body-secondary mb-0">
-                  TODO: Add member invitations here.
-                </p>
               </div>
               <div className="modal-footer">
                 <button

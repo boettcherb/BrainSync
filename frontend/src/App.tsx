@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import LoginPage from './components/LoginPage';
+import Header from './components/Header';
+import GroupSidebar from './components/GroupSidebar';
+import CalendarView from './components/CalendarView';
 import CreateGroupModal from './components/CreateGroupModal';
 import EditGroupModal from './components/EditGroupModal';
-import { loginRequest, signupRequest } from './api/auth';
-import * as groupAPI from './api/groups';
-import type { User, SignupInput } from './types/User';
-import type { UserGroup, GroupInput } from './types/Group';
+import * as authAPI from './api/authAPI';
+import * as groupAPI from './api/groupAPI';
+import type { User, SignupInput, GroupMember } from './types/User';
+import type { UserGroup, GroupInput, GroupRole } from './types/Group';
 
 interface AuthState {
   user: User;
@@ -16,10 +19,11 @@ function App() {
   const [auth, setAuth] = useState<AuthState | null>(null);
   const [groups, setGroups] = useState<UserGroup[]>([]);
   const [activeGroup, setActiveGroup] = useState<UserGroup | null>(null);
+  const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
   const [showCreateGroup, setShowCreateGroup] = useState<boolean>(false);
   const [showEditGroup, setShowEditGroup] = useState<boolean>(false);
 
-  // Load groups whenever authentication changes.
+  // Load user's groups whenever authentication changes
   useEffect(() => {
     async function loadUserGroups() {
       if (!auth) {
@@ -27,16 +31,32 @@ function App() {
         setActiveGroup(null);
         return;
       }
-      const userGroups = await groupAPI.getUserGroupsRequest(auth.token);
+      const userGroups = await groupAPI.getUserGroups(auth.token);
       setGroups(userGroups);
       setActiveGroup(userGroups[0] ?? null);
     }
     loadUserGroups();
   }, [auth]);
 
+  // Load members of the active group whenever the active group changes
+  useEffect(() => {
+    async function loadGroupMembers() {
+      if (!auth || !activeGroup) {
+        setGroupMembers([]);
+        return;
+      }
+      const members = await groupAPI.getGroupMembers(
+        activeGroup.id,
+        auth.token
+      );
+      setGroupMembers(members);
+    }
+    loadGroupMembers();
+  }, [auth, activeGroup]);
+
   async function createGroup(newGroup: GroupInput): Promise<void> {
     if (!auth) return;
-    const group = await groupAPI.createGroupRequest(newGroup, auth.token);
+    const group = await groupAPI.createGroup(newGroup, auth.token);
     const userGroup: UserGroup = { ...group, role: 'owner' };
     setGroups((current) => [...current, userGroup]);
     setActiveGroup(userGroup);
@@ -44,7 +64,7 @@ function App() {
 
   async function updateGroup(groupId: string, newGroupData: GroupInput) {
     if (!auth) return;
-    const updatedGroup = await groupAPI.updateGroupRequest(
+    const updatedGroup = await groupAPI.updateGroup(
       groupId,
       newGroupData,
       auth.token
@@ -61,7 +81,7 @@ function App() {
 
   async function deleteGroup(groupId: string) {
     if (!auth) return;
-    await groupAPI.deleteGroupRequest(groupId, auth.token);
+    await groupAPI.deleteGroup(groupId, auth.token);
     const remainingGroups = groups.filter((group) => group.id !== groupId);
     setGroups(remainingGroups);
     setActiveGroup(remainingGroups[0] ?? null);
@@ -69,7 +89,7 @@ function App() {
 
   async function leaveGroup(groupId: string) {
     if (!auth) return;
-    await groupAPI.leaveGroupRequest(groupId, auth.token);
+    await groupAPI.leaveGroup(groupId, auth.token);
     const remainingGroups = groups.filter(
       (group) => group.id !== groupId
     );
@@ -78,12 +98,12 @@ function App() {
   }
 
   async function login(email: string, password: string): Promise<void> {
-    const data = await loginRequest(email, password);
+    const data = await authAPI.login(email, password);
     setAuth({ user: data.user, token: data.token });
   }
 
   async function signup(newUser: SignupInput): Promise<void> {
-    const data = await signupRequest(newUser);
+    const data = await authAPI.signup(newUser);
     setAuth({ user: data.user, token: data.token });
   }
 
@@ -91,6 +111,29 @@ function App() {
     setAuth(null);
     setGroups([]);
     setActiveGroup(null);
+  }
+
+  async function removeGroupMember(
+    groupId: string,
+    memberId: string
+  ): Promise<void> {
+    if (!auth) return;
+    await groupAPI.removeGroupMember(groupId, memberId, auth.token);
+    setGroupMembers((current) =>
+      current.filter((member) => member.id !== memberId)
+    );
+  }
+
+  async function addGroupMember(
+    groupId: string,
+    username: string,
+    role: GroupRole
+  ): Promise<void> {
+    if (!auth) return;
+    const member = await groupAPI.addGroupMember(
+      groupId, username, role, auth.token
+    );
+    setGroupMembers((current) => [...current, member]);
   }
 
   // If the user is not logged in, show the login page.
@@ -101,133 +144,20 @@ function App() {
   return (
     <>
       <div className="min-vh-100 d-flex flex-column">
-        {/* Header */}
-        <header className="border-bottom bg-body px-4 py-3">
-          <div className="d-flex justify-content-between align-items-center">
-            <div>
-              <h1 className="h4 mb-0">BrainSync</h1>
-            </div>
-            <div className="d-flex align-items-center gap-3">
-              <div className="text-end">
-                <div className="fw-semibold">
-                  {auth.user.display_name}
-                </div>
-                <div className="small text-body-secondary">
-                  @{auth.user.username}
-                </div>
-              </div>
-              <button
-                className="btn btn-outline-secondary btn-sm"
-                onClick={logout}
-              >
-                Log Out
-              </button>
-            </div>
-          </div>
-        </header>
-        {/* Main layout */}
+        <Header user={auth.user} onLogout={logout} />
         <div className="d-flex flex-grow-1">
-          {/* Group sidebar */}
-          <aside
-            className="border-end p-3"
-            style={{ width: '240px', minWidth: '240px' }}
-          >
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h2 className="h6 mb-0">Groups</h2>
-              <button
-                className="btn btn-primary btn-sm"
-                type="button"
-                onClick={() => setShowCreateGroup(true)}
-              >
-                +
-              </button>
-            </div>
-            {groups.length === 0 ? (
-              <p className="text-body-secondary small">
-                No groups yet.
-              </p>
-            ) : (
-              <div className="list-group">
-                {groups.map((group) => (
-                  <button
-                    key={group.id}
-                    type="button"
-                    className={`list-group-item list-group-item-action
-                      ${activeGroup?.id === group.id ? 'active' : ''}`
-                    }
-                    onClick={() => setActiveGroup(group)}
-                  >
-                    <div className="fw-semibold">{group.name}</div>
-                    <div className="small">{group.role}</div>
-                    {activeGroup?.id === group.id &&
-                      (group.role === 'owner' || group.role === 'admin') && (
-                      <div className="mt-2">
-                        <button
-                          className="btn btn-sm me-2 text-white bg-primary"
-                          type="button"
-                          onClick={() => setShowEditGroup(true)}
-                        >
-                          <i className="bi bi-pencil"></i>
-                        </button>
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </aside>
-          {/* Main calendar area */}
-          <main className="flex-grow-1 p-4">
-            {!activeGroup ? (
-              <div className="h-100 d-flex align-items-center justify-content-center">
-                <div className="text-center">
-                  <h2 className="h4">
-                    No groups yet
-                  </h2>
-                  <p className="text-body-secondary">
-                    Create a group to start creating calendars.
-                  </p>
-                  <button
-                    className="btn btn-primary"
-                    type="button"
-                    onClick={() => setShowCreateGroup(true)}
-                  >
-                    Create Group
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <h2 className="mb-3">
-                  {activeGroup.name}
-                </h2>
-                <div className="card">
-                  <div className="card-body">
-                    <p>
-                      <strong>Description:</strong>{' '}
-                      {activeGroup.description || 'No description'}
-                    </p>
-
-                    <p>
-                      <strong>Your role:</strong>{' '}{activeGroup.role}
-                    </p>
-
-                    <p>
-                      <strong>Group ID:</strong>{' '}{activeGroup.id}
-                    </p>
-
-                    <p className="mb-0">
-                      <strong>Created:</strong>{' '}
-                      {new Date(activeGroup.created_at).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-4 border rounded p-5 text-center text-body-secondary">
-                  Calendar view will go here.
-                </div>
-              </div>
-            )}
-          </main>
+          <GroupSidebar
+            groups={groups}
+            activeGroup={activeGroup}
+            groupMembers={groupMembers}
+            onSelectGroup={setActiveGroup}
+            onCreateGroup={() => setShowCreateGroup(true)}
+            onEditGroup={() => setShowEditGroup(true)}
+          />
+          <CalendarView
+            activeGroup={activeGroup}
+            onCreateGroup={() => setShowCreateGroup(true)}
+          />
         </div>
       </div>
       {showCreateGroup && (
@@ -239,10 +169,14 @@ function App() {
       {showEditGroup && activeGroup && (
         <EditGroupModal
           group={activeGroup}
+          groupMembers={groupMembers}
+          currentUserId={auth.user.id}
           onClose={() => setShowEditGroup(false)}
           onUpdate={updateGroup}
           onLeave={leaveGroup}
           onDelete={deleteGroup}
+          onAddMember={addGroupMember}
+          onRemoveMember={removeGroupMember}
         />
       )}
     </>

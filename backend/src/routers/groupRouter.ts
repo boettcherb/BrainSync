@@ -1,6 +1,8 @@
 import express from 'express';
 import { requireAuth, type AuthenticatedRequest } from '../middleware/authMiddleware';
 import * as groupDB from '../db/groupRepository';
+import { AppError } from '../appError';
+import { GroupRole } from '../types/Group';
 
 const router = express.Router();
 router.use(requireAuth); // Authenticate all endpoints in this file
@@ -108,7 +110,26 @@ router.delete('/:groupId', async (req: AuthenticatedRequest, res) => {
 
 // GET /groups/:groupId/members - Get members of a specific group
 router.get('/:groupId/members', async (req: AuthenticatedRequest, res) => {
-    res.send(`Get members of group with ID ${req.params.groupId}`);
+    try {
+        // Retrieve the userId from the authenticated request
+        // and the groupId from the request parameters.
+        const userId = req.user!.userId;
+        const groupId = req.params.groupId as string;
+        // Ensure the user is a member of the group
+        const role = await groupDB.getUserRoleInGroup(userId, groupId);
+        if (!role) {
+            res.status(403).json({
+                message: "You do not have access to this group"
+            });
+            return;
+        }
+        // Retrieve and return a list of the group's members from the database
+        const groupMembers = await groupDB.getGroupMembers(groupId);
+        res.json(groupMembers);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
 });
 
 
@@ -128,6 +149,40 @@ router.delete('/:groupId/members/me', async (req: AuthenticatedRequest, res) => 
         }
         res.status(204).send();
     } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+// POST /groups/:groupId/members - Add a member to a group
+router.post('/:groupId/members', async (req: AuthenticatedRequest, res) => {
+    try {
+        // Retrieve the userId from the authenticated request
+        // Retrieve groupId from the request parameters
+        const userId = req.user!.userId;
+        const groupId = req.params.groupId as string;
+        // Retrieve member username and role from the request body.
+        // Verify that both are valid.
+        const { username, role } = req.body;
+        if (typeof username !== 'string' || username.trim().length === 0) {
+            res.status(400).json({ message: 'Username is required' });
+            return;
+        }
+        const validRoles = ['admin', 'editor', 'contributor', 'viewer'];
+        if (typeof role !== 'string' || !validRoles.includes(role)) {
+            res.status(400).json({ message: 'Invalid group role' });
+            return;
+        }
+        // Add the member to the group by calling the DB function
+        const newMember = await groupDB.addGroupMember(
+            groupId, username.trim().toLowerCase(), role as GroupRole, userId
+        );
+        res.status(201).json(newMember);
+    } catch (error) {
+        if (error instanceof AppError) {
+            res.status(error.statusCode).json({ message: error.message });
+            return;
+        }
         console.error(error);
         res.status(500).json({ message: "Internal server error" });
     }
