@@ -49,7 +49,7 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
 
 
 // PUT /groups/:groupId - Update a specific group
-router.put('/:groupId', async (req: AuthenticatedRequest, res) => {
+router.patch('/:groupId', async (req: AuthenticatedRequest, res) => {
     try {
         // Retrieve the userId from the authenticated request, the groupId from
         // the request parameters, and the new group's data from the request body.
@@ -133,27 +133,6 @@ router.get('/:groupId/members', async (req: AuthenticatedRequest, res) => {
 });
 
 
-// DELETE /groups/:groupId/members/me - Leave a specific group
-router.delete('/:groupId/members/me', async (req: AuthenticatedRequest, res) => {
-    try {
-        // Retrieve the userId from the authenticated request
-        // and the groupId from the request parameters.
-        const userId = req.user!.userId;
-        const groupId = req.params.groupId as string;
-        // Leave the group. The leaveGroup function ensures that the user
-        // leaving is not the owner.
-        const left = await groupDB.leaveGroup(groupId, userId);
-        if (!left) {
-            res.status(403).json({ message: "Error leaving the group" });
-            return;
-        }
-        res.status(204).send();
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Internal server error" });
-    }
-});
-
 // POST /groups/:groupId/members - Add a member to a group
 router.post('/:groupId/members', async (req: AuthenticatedRequest, res) => {
     try {
@@ -189,6 +168,28 @@ router.post('/:groupId/members', async (req: AuthenticatedRequest, res) => {
 });
 
 
+// DELETE /groups/:groupId/members/me - Leave a specific group
+router.delete('/:groupId/members/me', async (req: AuthenticatedRequest, res) => {
+    try {
+        // Retrieve the userId from the authenticated request
+        // and the groupId from the request parameters.
+        const userId = req.user!.userId;
+        const groupId = req.params.groupId as string;
+        // Leave the group. The leaveGroup function ensures that the user
+        // leaving is not the owner.
+        const left = await groupDB.leaveGroup(groupId, userId);
+        if (!left) {
+            res.status(403).json({ message: "Error leaving the group" });
+            return;
+        }
+        res.status(204).send();
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+
 // DELETE /groups/:groupId/members/:memberId - Remove a specific member from a group
 router.delete('/:groupId/members/:memberId', async (req: AuthenticatedRequest, res) => {
     try {
@@ -214,9 +215,21 @@ router.delete('/:groupId/members/:memberId', async (req: AuthenticatedRequest, r
 });
 
 
+// PATCH /groups/:groupId/members/:memberId - update permissions for a group member
+router.patch('/:groupId/members/:memberId', async (req: AuthenticatedRequest, res) => {
+
+});
+
+
 // GET /groups/:groupId/calendars - Get calendars for a specific group
 router.get('/:groupId/calendars', async (req: AuthenticatedRequest, res) => {
-    res.send(`Get calendars for group with ID ${req.params.groupId}`);
+
+});
+
+
+// POST /groups/:groupId/calendars - Create a calendar for a group
+router.post('/:groupId/calendars', async (req: AuthenticatedRequest, res) => {
+
 });
 
 

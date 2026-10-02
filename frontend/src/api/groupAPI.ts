@@ -46,7 +46,7 @@ export async function updateGroup(
     token: string,
 ): Promise<Group> {
     const response = await fetch(`${API_URL}/groups/${groupId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,

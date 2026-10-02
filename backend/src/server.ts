@@ -39,23 +39,38 @@ app.use('/auth', authLimiter, userRouter);
 
 
 // Group Routes:
-// GET    /groups                            - Get groups the current user belongs to
+// GET    /groups                            - Get groups the caller belongs to
 // POST   /groups                            - Create a new group
-// PUT    /groups/:groupId                   - Update a specific group
+// PATCH  /groups/:groupId                   - Update a specific group
 // DELETE /groups/:groupId                   - Delete a specific group
 // GET    /groups/:groupId/members           - Get members of a specific group
 // POST   /groups/:groupId/members           - Add a member to a group
 // DELETE /groups/:groupId/members/me        - Leave a specific group
 // DELETE /groups/:groupId/members/:memberId - Remove a specific member from a group
-// GET    /groups/:groupId/calendars         - Get calendars for a specific group
+// PATCH  /groups/:groupId/members/:memberId - Update permissions for a group member
+// GET    /groups/:groupId/calendars         - Retrieve all of a group's calendars
+// POST   /groups/:groupId/calendars         - Create a calendar for a group
 app.use('/groups', groupRouter);
 
 
 // Calendar Routes:
-// GET /calendars/:calendarId            - Get details of a specific calendar
-// GET /calendars/:calendarId/events     - Get events for a specific calendar
-// GET /calendars/:calendarId/categories - Get categories for a specific calendar
+// PATCH  /calendars/:calendarId            - Update a calendar
+// DELETE /calendars/:calendarId            - Delete a calendar
+// GET    /calendars/:calendarId/categories - Get all of a calendar's categories
+// POST   /calendars/:calendarId/categories - Create a category for a calendar
+// GET    /calendars/:calendarId/events     - Get all of a calendar's events
+// POST   /calendars/:calendarId/events     - Create an event
 app.use('/calendars', calendarRouter);
+
+
+// Category Routes:
+// PATCH  /categories/:categoryId       - Update an category
+// DELETE /categories/:categoryId       - Delete an category
+
+
+// Event Routes:
+// PATCH  /events/:eventId       - Update an event
+// DELETE /events/:eventId       - Delete an event
 
 
 app.listen(port, () => {
