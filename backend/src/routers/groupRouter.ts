@@ -1,6 +1,6 @@
 import express from 'express';
 import { requireAuth, type AuthenticatedRequest } from '../middleware/authMiddleware';
-import * as groupDB from '../db/groupRepository';
+import * as groupDB from '../db/groupDB';
 import { AppError } from '../appError';
 import { GroupRole } from '../types/Group';
 

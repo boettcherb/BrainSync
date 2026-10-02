@@ -2,7 +2,7 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import validator from 'validator';
-import * as userDB from '../db/userRepository';
+import * as userDB from '../db/userDB';
 import type { User, PublicUser, SignupInput } from '../types/User';
 
 const router = express.Router();
