@@ -60,3 +60,42 @@ export async function getCalendarCategories(
     }
     return data;
 }
+
+// API request to get all of a group's calendars
+export async function getGroupCalendars(
+    groupId: string,
+    token: string,
+): Promise<Calendar[]> {
+    const response = await fetch(`${API_URL}/groups/${groupId}/calendars`, {
+        method: 'GET',
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+        throw new Error(data?.message || "Error retrieving caldendars");
+    }
+    return data;
+}
+
+// API request to create a calendar for a group
+export async function createCalendar(
+    groupId: string,
+    calendar: CalendarInput,
+    token: string,
+): Promise<Calendar> {
+    const response = await fetch(`${API_URL}/groups/${groupId}/calendars`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(calendar),
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+        throw new Error(data?.message || "Error creating calendar");
+    }
+    return data;
+}
