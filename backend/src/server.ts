@@ -41,7 +41,7 @@ app.use('/auth', authLimiter, userRouter);
 // Group Routes:
 // GET    /groups                            - Get groups the caller belongs to
 // POST   /groups                            - Create a new group
-// PATCH  /groups/:groupId                   - Update a specific group
+// PUT    /groups/:groupId                   - Update a specific group
 // DELETE /groups/:groupId                   - Delete a specific group
 // GET    /groups/:groupId/members           - Get members of a specific group
 // POST   /groups/:groupId/members           - Add a member to a group
@@ -54,7 +54,7 @@ app.use('/groups', groupRouter);
 
 
 // Calendar Routes:
-// PATCH  /calendars/:calendarId            - Update a calendar
+// PUT    /calendars/:calendarId            - Update a calendar
 // DELETE /calendars/:calendarId            - Delete a calendar
 // GET    /calendars/:calendarId/categories - Get all of a calendar's categories
 // POST   /calendars/:calendarId/categories - Create a category for a calendar
@@ -64,12 +64,12 @@ app.use('/calendars', calendarRouter);
 
 
 // Category Routes:
-// PATCH  /categories/:categoryId       - Update an category
+// PUT    /categories/:categoryId       - Update an category
 // DELETE /categories/:categoryId       - Delete an category
 
 
 // Event Routes:
-// PATCH  /events/:eventId       - Update an event
+// PUT    /events/:eventId       - Update an event
 // DELETE /events/:eventId       - Delete an event
 
 
