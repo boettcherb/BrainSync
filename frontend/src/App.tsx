@@ -156,6 +156,7 @@ function App() {
           />
           <CalendarView
             activeGroup={activeGroup}
+            token={auth.token}
             onCreateGroup={() => setShowCreateGroup(true)}
           />
         </div>
