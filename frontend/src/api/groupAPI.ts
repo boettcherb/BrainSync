@@ -1,5 +1,6 @@
 import type { Group, UserGroup, GroupInput, GroupRole } from "../types/Group";
 import type { GroupMember } from "../types/User";
+import type { Calendar, CalendarInput } from "../types/Calendar";
 
 // Backend API URL
 const API_URL = import.meta.env.VITE_BACKEND_API_URL;
@@ -10,9 +11,9 @@ export async function getUserGroups(token: string): Promise<UserGroup[]> {
         method: 'GET',
         headers: {
             Authorization: `Bearer ${token}`,
-        }
+        },
     });
-    const data = await response.json();
+    const data = await response.json().catch(() => null);
     if (!response.ok) {
         throw new Error(data.message || "Error retrieving user groups");
     }
@@ -32,7 +33,7 @@ export async function createGroup(
         },
         body: JSON.stringify(newGroup),
     });
-    const data = await response.json();
+    const data = await response.json().catch(() => null);
     if (!response.ok) {
         throw new Error(data.message || "Error creating new group");
     }
@@ -53,7 +54,7 @@ export async function updateGroup(
         },
         body: JSON.stringify(newGroupData),
     });
-    const data = await response.json();
+    const data = await response.json().catch(() => null);
     if (!response.ok) {
         throw new Error(data.message || "Error updating group");
     }
@@ -69,10 +70,10 @@ export async function deleteGroup(
         method: 'DELETE',
         headers: {
             Authorization: `Bearer ${token}`,
-        }
+        },
     });
+    const data = await response.json().catch(() => null);
     if (!response.ok) {
-        const data = await response.json().catch(() => null);
         throw new Error(data?.message || "Error deleting group");
     }
 }
@@ -86,9 +87,9 @@ export async function getGroupMembers(
         method: 'GET',
         headers: {
             Authorization: `Bearer ${token}`,
-        }
+        },
     });
-    const data = await response.json();
+    const data = await response.json().catch(() => null);
     if (!response.ok) {
         throw new Error(data.message || "Error retrieving group members");
     }
@@ -104,10 +105,10 @@ export async function leaveGroup(
         method: 'DELETE',
         headers: {
             Authorization: `Bearer ${token}`,
-        }
+        },
     });
+    const data = await response.json().catch(() => null);
     if (!response.ok) {
-        const data = await response.json().catch(() => null);
         throw new Error(data?.message || "Error leaving group");
     }
 }
@@ -119,7 +120,7 @@ export async function addGroupMember(
     role: GroupRole,
     token: string,
 ): Promise<GroupMember> {
-    const url = `${API_URL}/groups/${groupId}/members/`;
+    const url = `${API_URL}/groups/${groupId}/members`;
     const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -128,7 +129,7 @@ export async function addGroupMember(
         },
         body: JSON.stringify({ username, role }),
     });
-    const data = await response.json();
+    const data = await response.json().catch(() => null);
     if (!response.ok) {
         throw new Error(data.message || "Error adding member to group");
     }
@@ -146,10 +147,49 @@ export async function removeGroupMember(
         method: 'DELETE',
         headers: {
             Authorization: `Bearer ${token}`,
-        }
+        },
     });
+    const data = await response.json().catch(() => null);
     if (!response.ok) {
-        const data = await response.json().catch(() => null);
         throw new Error(data?.message || "Error removing group member");
     }
+}
+
+// API request to get all of a group's calendars
+export async function getGroupCalendars(
+    groupId: string,
+    token: string,
+): Promise<Calendar[]> {
+    const response = await fetch(`${API_URL}/groups/${groupId}/calendars`, {
+        method: 'GET',
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+        throw new Error(data?.message || "Error retrieving caldendars");
+    }
+    return data;
+}
+
+// API request to create a calendar for a group
+export async function createCalendar(
+    groupId: string,
+    calendar: CalendarInput,
+    token: string,
+): Promise<Calendar> {
+    const response = await fetch(`${API_URL}/groups/${groupId}/calendars`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(calendar),
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+        throw new Error(data?.message || "Error creating calendar");
+    }
+    return data;
 }
