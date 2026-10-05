@@ -10,9 +10,9 @@ export async function getUserGroups(token: string): Promise<UserGroup[]> {
         method: 'GET',
         headers: {
             Authorization: `Bearer ${token}`,
-        }
+        },
     });
-    const data = await response.json();
+    const data = await response.json().catch(() => null);
     if (!response.ok) {
         throw new Error(data.message || "Error retrieving user groups");
     }
@@ -32,7 +32,7 @@ export async function createGroup(
         },
         body: JSON.stringify(newGroup),
     });
-    const data = await response.json();
+    const data = await response.json().catch(() => null);
     if (!response.ok) {
         throw new Error(data.message || "Error creating new group");
     }
@@ -46,14 +46,14 @@ export async function updateGroup(
     token: string,
 ): Promise<Group> {
     const response = await fetch(`${API_URL}/groups/${groupId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(newGroupData),
     });
-    const data = await response.json();
+    const data = await response.json().catch(() => null);
     if (!response.ok) {
         throw new Error(data.message || "Error updating group");
     }
@@ -69,10 +69,10 @@ export async function deleteGroup(
         method: 'DELETE',
         headers: {
             Authorization: `Bearer ${token}`,
-        }
+        },
     });
+    const data = await response.json().catch(() => null);
     if (!response.ok) {
-        const data = await response.json().catch(() => null);
         throw new Error(data?.message || "Error deleting group");
     }
 }
@@ -86,9 +86,9 @@ export async function getGroupMembers(
         method: 'GET',
         headers: {
             Authorization: `Bearer ${token}`,
-        }
+        },
     });
-    const data = await response.json();
+    const data = await response.json().catch(() => null);
     if (!response.ok) {
         throw new Error(data.message || "Error retrieving group members");
     }
@@ -104,10 +104,10 @@ export async function leaveGroup(
         method: 'DELETE',
         headers: {
             Authorization: `Bearer ${token}`,
-        }
+        },
     });
+    const data = await response.json().catch(() => null);
     if (!response.ok) {
-        const data = await response.json().catch(() => null);
         throw new Error(data?.message || "Error leaving group");
     }
 }
@@ -119,7 +119,7 @@ export async function addGroupMember(
     role: GroupRole,
     token: string,
 ): Promise<GroupMember> {
-    const url = `${API_URL}/groups/${groupId}/members/`;
+    const url = `${API_URL}/groups/${groupId}/members`;
     const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -128,7 +128,7 @@ export async function addGroupMember(
         },
         body: JSON.stringify({ username, role }),
     });
-    const data = await response.json();
+    const data = await response.json().catch(() => null);
     if (!response.ok) {
         throw new Error(data.message || "Error adding member to group");
     }
@@ -146,10 +146,10 @@ export async function removeGroupMember(
         method: 'DELETE',
         headers: {
             Authorization: `Bearer ${token}`,
-        }
+        },
     });
+    const data = await response.json().catch(() => null);
     if (!response.ok) {
-        const data = await response.json().catch(() => null);
         throw new Error(data?.message || "Error removing group member");
     }
 }

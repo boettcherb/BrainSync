@@ -1,7 +1,7 @@
 // Category data type: Matches the 'event_categories' table in the database schema.
 export interface Category {
     id:          string;
-    calendar_id: string;
+    group_id:    string;
     name:        string;
     color:       string;
     icon:        string;

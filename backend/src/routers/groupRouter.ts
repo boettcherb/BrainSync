@@ -1,6 +1,7 @@
 import express from 'express';
 import { requireAuth, type AuthenticatedRequest } from '../middleware/authMiddleware';
-import * as groupDB from '../db/groupRepository';
+import * as groupDB from '../db/groupDB';
+import * as categoryDB from '../db/categoryDB';
 import { AppError } from '../appError';
 import { GroupRole } from '../types/Group';
 
@@ -133,27 +134,6 @@ router.get('/:groupId/members', async (req: AuthenticatedRequest, res) => {
 });
 
 
-// DELETE /groups/:groupId/members/me - Leave a specific group
-router.delete('/:groupId/members/me', async (req: AuthenticatedRequest, res) => {
-    try {
-        // Retrieve the userId from the authenticated request
-        // and the groupId from the request parameters.
-        const userId = req.user!.userId;
-        const groupId = req.params.groupId as string;
-        // Leave the group. The leaveGroup function ensures that the user
-        // leaving is not the owner.
-        const left = await groupDB.leaveGroup(groupId, userId);
-        if (!left) {
-            res.status(403).json({ message: "Error leaving the group" });
-            return;
-        }
-        res.status(204).send();
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Internal server error" });
-    }
-});
-
 // POST /groups/:groupId/members - Add a member to a group
 router.post('/:groupId/members', async (req: AuthenticatedRequest, res) => {
     try {
@@ -189,6 +169,28 @@ router.post('/:groupId/members', async (req: AuthenticatedRequest, res) => {
 });
 
 
+// DELETE /groups/:groupId/members/me - Leave a specific group
+router.delete('/:groupId/members/me', async (req: AuthenticatedRequest, res) => {
+    try {
+        // Retrieve the userId from the authenticated request
+        // and the groupId from the request parameters.
+        const userId = req.user!.userId;
+        const groupId = req.params.groupId as string;
+        // Leave the group. The leaveGroup function ensures that the user
+        // leaving is not the owner.
+        const left = await groupDB.leaveGroup(groupId, userId);
+        if (!left) {
+            res.status(403).json({ message: "Error leaving the group" });
+            return;
+        }
+        res.status(204).send();
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+
 // DELETE /groups/:groupId/members/:memberId - Remove a specific member from a group
 router.delete('/:groupId/members/:memberId', async (req: AuthenticatedRequest, res) => {
     try {
@@ -214,10 +216,70 @@ router.delete('/:groupId/members/:memberId', async (req: AuthenticatedRequest, r
 });
 
 
-// GET /groups/:groupId/calendars - Get calendars for a specific group
-router.get('/:groupId/calendars', async (req: AuthenticatedRequest, res) => {
-    res.send(`Get calendars for group with ID ${req.params.groupId}`);
+// PATCH /groups/:groupId/members/:memberId - update permissions for a group member
+router.patch('/:groupId/members/:memberId', async (req: AuthenticatedRequest, res) => {
+    try {
+        // not implemented yet
+        res.status(501).json({ message: "Not implemented yet" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
 });
 
+
+// GET /groups/:groupId/events - Get all of a group's events
+router.get('/:groupId/events', async (req: AuthenticatedRequest, res) => {
+    try {
+        const userId = req.user!.userId;
+        const groupId = req.params.groupId as string;
+        // not implemented yet
+        res.status(501).json({ message: "Not implemented yet" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+// POST /groups/:groupId/events - Create a new event for a group
+router.post('/:groupId/events', async (req: AuthenticatedRequest, res) => {
+    try {
+        const userId = req.user!.userId;
+        const groupId = req.params.groupId as string;
+        // not implemented yet
+        res.status(501).json({ message: "Not implemented yet" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+
+// GET /groups/:groupId/categories - Get all of a group's categories
+router.get('/:groupId/categories', async (req: AuthenticatedRequest, res) => {
+    try {
+        const userId = req.user!.userId;
+        const groupId = req.params.groupId as string;
+        const categoryList = await categoryDB.getCategories(groupId, userId);
+        res.json(categoryList);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+
+// POST /groups/:groupId/categories - Create a new category for a group
+router.post('/:groupId/categories', async (req: AuthenticatedRequest, res) => {
+    try {
+        const userId = req.user!.userId;
+        const groupId = req.params.groupId as string;
+        // not implemented yet
+        res.status(501).json({ message: "Not implemented yet" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
 
 export default router;

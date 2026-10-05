@@ -1,7 +1,7 @@
 // Event data type: Matches the 'events' table in the database schema.
 export interface Event {
     id:                       string;
-    calendar_id:              string;
+    group_id:                 string;
     created_by?:              string | null;
     category_id?:             string | null;
     source_recurrence_id?:    string | null;
