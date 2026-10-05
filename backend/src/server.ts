@@ -3,7 +3,6 @@ import express from 'express';
 import cors from 'cors';
 import { generalApiLimiter, authLimiter } from './middleware/rateLimitMiddleware';
 import groupRouter from './routers/groupRouter';
-import calendarRouter from './routers/calendarRouter';
 import userRouter from './routers/userRouter';
 
 const port = process.env.PORT || 3000;
@@ -48,24 +47,16 @@ app.use('/auth', authLimiter, userRouter);
 // DELETE /groups/:groupId/members/me        - Leave a specific group
 // DELETE /groups/:groupId/members/:memberId - Remove a specific member from a group
 // PATCH  /groups/:groupId/members/:memberId - Update permissions for a group member
-// GET    /groups/:groupId/calendars         - Retrieve all of a group's calendars
-// POST   /groups/:groupId/calendars         - Create a calendar for a group
+// GET    /groups/:groupId/events            - Get all of a group's events
+// POST   /groups/:groupId/events            - Create a new event for a group
+// GET    /groups/:groupId/categories        - Get all of a group's categories
+// POST   /groups/:groupId/categories        - Create a new category for a group
 app.use('/groups', groupRouter);
 
 
-// Calendar Routes:
-// PUT    /calendars/:calendarId            - Update a calendar
-// DELETE /calendars/:calendarId            - Delete a calendar
-// GET    /calendars/:calendarId/categories - Get all of a calendar's categories
-// POST   /calendars/:calendarId/categories - Create a category for a calendar
-// GET    /calendars/:calendarId/events     - Get all of a calendar's events
-// POST   /calendars/:calendarId/events     - Create an event
-app.use('/calendars', calendarRouter);
-
-
 // Category Routes:
-// PUT    /categories/:categoryId       - Update an category
-// DELETE /categories/:categoryId       - Delete an category
+// PUT    /categories/:categoryId       - Update a category
+// DELETE /categories/:categoryId       - Delete a category
 
 
 // Event Routes:

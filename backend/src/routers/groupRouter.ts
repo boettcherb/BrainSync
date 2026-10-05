@@ -1,7 +1,7 @@
 import express from 'express';
 import { requireAuth, type AuthenticatedRequest } from '../middleware/authMiddleware';
 import * as groupDB from '../db/groupDB';
-import * as calendarDB from '../db/calendarDB';
+import * as categoryDB from '../db/categoryDB';
 import { AppError } from '../appError';
 import { GroupRole } from '../types/Group';
 
@@ -218,17 +218,9 @@ router.delete('/:groupId/members/:memberId', async (req: AuthenticatedRequest, r
 
 // PATCH /groups/:groupId/members/:memberId - update permissions for a group member
 router.patch('/:groupId/members/:memberId', async (req: AuthenticatedRequest, res) => {
-
-});
-
-
-// GET /groups/:groupId/calendars - Get calendars for a specific group
-router.get('/:groupId/calendars', async (req: AuthenticatedRequest, res) => {
     try {
-        const userId = req.user!.userId;
-        const groupId = req.params.groupId as string;
-        const calendars = await calendarDB.getGroupCalendars(groupId, userId);
-        res.json(calendars);
+        // not implemented yet
+        res.status(501).json({ message: "Not implemented yet" });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Internal server error" });
@@ -236,38 +228,58 @@ router.get('/:groupId/calendars', async (req: AuthenticatedRequest, res) => {
 });
 
 
-// POST /groups/:groupId/calendars - Create a calendar for a group
-router.post('/:groupId/calendars', async (req: AuthenticatedRequest, res) => {
+// GET /groups/:groupId/events - Get all of a group's events
+router.get('/:groupId/events', async (req: AuthenticatedRequest, res) => {
     try {
         const userId = req.user!.userId;
         const groupId = req.params.groupId as string;
-        const { name, description } = req.body;
-        if (typeof name !== 'string' || name.trim().length === 0) {
-            res.status(400).json({ message: 'Calendar name required'});
-            return;
-        }
-        if (description !== undefined && description !== null &&
-            typeof description !== 'string') {
-            res.status(400).json({
-                message: 'Calendar description must be a string'
-            });
-            return;
-        }
-        const desc = typeof description === 'string'
-            ? description.trim() || null : null;
-        const newCalendar = await calendarDB.createCalendar(
-            groupId, { name: name.trim(), description: desc }, userId
-        );
-        if (newCalendar === null) {
-            res.status(403).json({ message: 'Unable to create calendar'});
-            return;
-        }
-        res.status(201).json(newCalendar);
+        // not implemented yet
+        res.status(501).json({ message: "Not implemented yet" });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Internal server error" });
     }
 });
 
+// POST /groups/:groupId/events - Create a new event for a group
+router.post('/:groupId/events', async (req: AuthenticatedRequest, res) => {
+    try {
+        const userId = req.user!.userId;
+        const groupId = req.params.groupId as string;
+        // not implemented yet
+        res.status(501).json({ message: "Not implemented yet" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+
+// GET /groups/:groupId/categories - Get all of a group's categories
+router.get('/:groupId/categories', async (req: AuthenticatedRequest, res) => {
+    try {
+        const userId = req.user!.userId;
+        const groupId = req.params.groupId as string;
+        const categoryList = await categoryDB.getCategories(groupId, userId);
+        res.json(categoryList);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+
+// POST /groups/:groupId/categories - Create a new category for a group
+router.post('/:groupId/categories', async (req: AuthenticatedRequest, res) => {
+    try {
+        const userId = req.user!.userId;
+        const groupId = req.params.groupId as string;
+        // not implemented yet
+        res.status(501).json({ message: "Not implemented yet" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
 
 export default router;
