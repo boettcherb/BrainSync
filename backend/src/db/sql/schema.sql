@@ -1,5 +1,5 @@
 -- ============================================================
--- Calendar App Database Schema
+-- BrainSync Database Schema
 -- PostgreSQL
 -- ============================================================
 
@@ -40,9 +40,9 @@ CREATE TABLE users (
 -- GROUPS
 -- ============================================================
 --
--- A group is a collection of users who can share calendars and collaborate on events.
--- Groups with one member are effectively personal groups, and the calendars they own
--- function as personal calendars.
+-- A group is a collection of users who can share events and event categories.
+-- Each group can have multiple members with different roles and permissions.
+-- A one-member group is effectively a personal group for that user.
 --
 -- id:          Unique identifier for the group.
 -- name:        Display name of the group.
@@ -91,62 +91,38 @@ CREATE TABLE group_memberships (
 
 
 -- ============================================================
--- CALENDARS
--- ============================================================
--- 
--- Represents an individual calendar. Each calendar belongs to a group,
--- which can be one or many users.
---
--- id:          Unique identifier for the calendar.
--- group_id:    The group that owns this calendar. If the group
---              is deleted, its calendars are also deleted.
--- name:        Display name of the calendar.
--- description: Optional longer description explaining the calendar's purpose.
--- created_at:  Timestamp recording when the calendar was created.
--- updated_at:  Timestamp recording when the calendar was last changed.
---
-CREATE TABLE calendars (
-    id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    group_id    UUID        NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
-    name        TEXT        NOT NULL,
-    description TEXT,
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-
--- ============================================================
 -- EVENT CATEGORIES
 -- ============================================================
 -- 
--- Defines customizable event types within a calendar.
--- Categories are calendar-specific, so different calendars can define
+-- Defines customizable event types within a group.
+-- Categories are group-specific, so different groups can define
 -- their own categories and the colors for those categories.
--- Category names must be unique within a calendar, but different
--- calendars can use the same category names.
+-- Category names must be unique within a group, but different
+-- groups can use the same category names.
 --
--- id:          Unique identifier for the category.
--- calendar_id: The calendar this category belongs to. If the calendar
---              is deleted, its categories are also deleted.
--- name:        Display name of the category.
--- color:       CSS-compatible color used to render events in this category.
--- icon:        Icon representing the category. Example: "fa-star"
--- created_by:  User who created the category. If the user is deleted,
---              the category remains but created_by is set to NULL.
--- created_at:  Timestamp recording when the category was created.
--- updated_at:  Timestamp recording when the category was last changed.
+-- id:         Unique identifier for the category.
+-- group_id:   The group this category belongs to. If the group
+--             is deleted, its categories are also deleted.
+-- name:       Display name of the category.
+-- color:      CSS-compatible color used to render events in this category.
+-- icon:       Icon representing the category. Example: "fa-star"
+-- created_by: User who created the category. If the user is deleted,
+--             the category remains but created_by is set to NULL.
+-- created_at: Timestamp recording when the category was created.
+-- updated_at: Timestamp recording when the category was last changed.
 --
 CREATE TABLE event_categories (
-    id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    calendar_id UUID        NOT NULL REFERENCES calendars(id) ON DELETE CASCADE,
-    name        TEXT        NOT NULL,
-    color       TEXT        NOT NULL,
-    icon        TEXT        NOT NULL DEFAULT 'calendar',
-    created_by  UUID        REFERENCES users(id) ON DELETE SET NULL,
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_id   UUID        NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+    name       TEXT        NOT NULL,
+    color      TEXT        NOT NULL,
+    icon       TEXT        NOT NULL DEFAULT 'calendar',
+    created_by UUID        REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-    UNIQUE (calendar_id, name)
+    UNIQUE (group_id, id)
+    UNIQUE (group_id, name)
 );
 
 
@@ -163,7 +139,7 @@ CREATE TABLE event_categories (
 -- Event duration must be positive.
 --
 -- id:              Unique identifier for the recurring series.
--- calendar_id:     The calendar this recurring series belongs to. If a calendar
+-- group_id:        The group this recurring series belongs to. If a group
 --                  is deleted, its recurring series are also deleted.
 -- created_by:      User who originally created the recurring series. If the user
 --                  is deleted, the series remains but created_by is set to NULL
@@ -186,7 +162,7 @@ CREATE TABLE event_categories (
 --
 CREATE TABLE recurring_events (
     id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    calendar_id     UUID        NOT NULL REFERENCES calendars(id) ON DELETE CASCADE,
+    group_id        UUID        NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
     created_by      UUID        REFERENCES users(id) ON DELETE SET NULL,
     category_id     UUID        REFERENCES event_categories(id) ON DELETE SET NULL,
     name            TEXT        NOT NULL,
@@ -259,7 +235,7 @@ CREATE TABLE recurrence_exceptions (
 --     invalid state, prevented by a CHECK constraint
 --
 -- id:                      Unique identifier for the concrete event.
--- calendar_id:             The calendar this event belongs to. If the calendar is
+-- group_id:             The group this event belongs to. If the group is
 --                          deleted, all of its events are also deleted.
 -- created_by:              User who originally created this event. If the user is
 --                          deleted, the event remains but created_by is set to NULL.
@@ -285,7 +261,7 @@ CREATE TABLE recurrence_exceptions (
 --
 CREATE TABLE events (
     id                      UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    calendar_id             UUID        NOT NULL REFERENCES calendars(id) ON DELETE CASCADE,
+    group_id                UUID        NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
     created_by              UUID        REFERENCES users(id) ON DELETE SET NULL,
     category_id             UUID        REFERENCES event_categories(id) ON DELETE SET NULL,
     source_recurrence_id    UUID        REFERENCES recurring_events(id) ON DELETE SET NULL,
@@ -303,6 +279,36 @@ CREATE TABLE events (
     CHECK (source_recurrence_id IS NULL OR source_occurrence_start IS NOT NULL),
 
     UNIQUE (source_recurrence_id, source_occurrence_start)
+
+    FOREIGN KEY (group_id, category_id)
+        REFERENCES event_categories(group_id, id)
+        ON DELETE SET NULL (category_id)
+);
+
+
+-- ============================================================
+-- EVENT GROUP SHARES
+-- ============================================================
+--
+-- Junction table connecting events and groups with specific visibility
+-- settings. This allows events to be shared with multiple groups, each with
+-- its own visibility setting. An event in a 'family' or 'personal' group from
+-- 2-3pm can be shared with other groups so their members can see that the user
+-- is busy at that time. A visibility of 'busy' does not reveal any details
+-- about the event except the time.
+--
+-- event_id:   The event being shared with a group.
+-- group_id:   The group with which the event is shared.
+-- visibility: The level of visibility the group has for this event. Can be 'busy' or 'full'.
+--
+CREATE TABLE event_group_shares (
+    event_id   UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    group_id   UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+    visibility TEXT NOT NULL DEFAULT 'busy',
+    
+    CHECK (visibility IN ('busy', 'full')),
+
+    PRIMARY KEY (event_id, group_id)
 );
 
 
@@ -400,11 +406,6 @@ EXECUTE FUNCTION set_updated_at();
 
 CREATE TRIGGER groups_set_updated_at
 BEFORE UPDATE ON groups
-FOR EACH ROW
-EXECUTE FUNCTION set_updated_at();
-
-CREATE TRIGGER calendars_set_updated_at
-BEFORE UPDATE ON calendars
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
 
