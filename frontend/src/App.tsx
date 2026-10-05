@@ -7,59 +7,121 @@ import CreateGroupModal from './components/CreateGroupModal';
 import EditGroupModal from './components/EditGroupModal';
 import * as authAPI from './api/authAPI';
 import * as groupAPI from './api/groupAPI';
+import * as categoryAPI from './api/categoryAPI';
 import type { User, SignupInput, GroupMember } from './types/User';
 import type { UserGroup, GroupInput, GroupRole } from './types/Group';
+import type { Category } from './types/Category';
 
 interface AuthState {
   user: User;
   token: string;
 }
 
+type MembersByGroup = Record<string, GroupMember[]>;
+type CategoriesByGroup = Record<string, Category[]>;
+
 function App() {
   const [auth, setAuth] = useState<AuthState | null>(null);
   const [groups, setGroups] = useState<UserGroup[]>([]);
-  const [activeGroup, setActiveGroup] = useState<UserGroup | null>(null);
-  const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
+  // The group currently being managed in EditGroupModal
+  const [editingGroup, setEditingGroup] = useState<UserGroup | null>(null);
+  const [membersByGroup, setMembersByGroup] = useState<MembersByGroup>({});
+  const [categoriesByGroup, setCategoriesByGroup] = useState<CategoriesByGroup>({});
+  // Visibility filters for the unified calendar view
+  const [visibleGroupIds, setVisibleGroupIds]
+    = useState<Set<string>>(() => new Set());
+  const [visibleCategoryIds, setVisibleCategoryIds]
+    = useState<Set<string>>(() => new Set());
   const [showCreateGroup, setShowCreateGroup] = useState<boolean>(false);
-  const [showEditGroup, setShowEditGroup] = useState<boolean>(false);
 
-  // Load user's groups whenever authentication changes
+  // Load the user's groups and the data needed by the sidebar whenever
+  // authentication changes.
   useEffect(() => {
-    async function loadUserGroups() {
+    async function loadUserData() {
       if (!auth) {
         setGroups([]);
-        setActiveGroup(null);
+        setEditingGroup(null);
+        setMembersByGroup({});
+        setCategoriesByGroup({});
+        setVisibleGroupIds(new Set());
+        setVisibleCategoryIds(new Set());
         return;
       }
       const userGroups = await groupAPI.getUserGroups(auth.token);
       setGroups(userGroups);
-      setActiveGroup(userGroups[0] ?? null);
+      setVisibleGroupIds(new Set(userGroups.map((group) => group.id)));
+      const details = await Promise.all(
+        userGroups.map(async (group) => {
+          const [members, categories] = await Promise.all([
+            groupAPI.getGroupMembers(group.id, auth.token),
+            categoryAPI.getGroupCategories(group.id, auth.token),
+          ]);
+          return { groupId: group.id, members, categories };
+        })
+      );
+      const nextMembers: MembersByGroup = {};
+      const nextCategories: CategoriesByGroup = {};
+      const categoryIds = new Set<string>();
+      for (const detail of details) {
+        nextMembers[detail.groupId] = detail.members;
+        nextCategories[detail.groupId] = detail.categories;
+        for (const category of detail.categories) {
+          categoryIds.add(category.id);
+        }
+      }
+      setMembersByGroup(nextMembers);
+      setCategoriesByGroup(nextCategories);
+      setVisibleCategoryIds(categoryIds);
     }
-    loadUserGroups();
+    loadUserData().catch((error) => {
+      console.error('Unable to load group data:', error);
+    });
   }, [auth]);
 
-  // Load members of the active group whenever the active group changes
-  useEffect(() => {
-    async function loadGroupMembers() {
-      if (!auth || !activeGroup) {
-        setGroupMembers([]);
-        return;
+  function toggleGroupVisibility(groupId: string) {
+    setVisibleGroupIds((current) => {
+      const next = new Set(current);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
       }
-      const members = await groupAPI.getGroupMembers(
-        activeGroup.id,
-        auth.token
-      );
-      setGroupMembers(members);
-    }
-    loadGroupMembers();
-  }, [auth, activeGroup]);
+      return next;
+    });
+  }
+
+  function toggleCategoryVisibility(categoryId: string) {
+    setVisibleCategoryIds((current) => {
+      const next = new Set(current);
+      if (next.has(categoryId)) {
+        next.delete(categoryId);
+      } else {
+        next.add(categoryId);
+      }
+      return next;
+    });
+  }
 
   async function createGroup(newGroup: GroupInput): Promise<void> {
     if (!auth) return;
     const group = await groupAPI.createGroup(newGroup, auth.token);
     const userGroup: UserGroup = { ...group, role: 'owner' };
     setGroups((current) => [...current, userGroup]);
-    setActiveGroup(userGroup);
+    setVisibleGroupIds((current) => new Set(current).add(userGroup.id));
+    // Reload the new group's details so the sidebar has accurate member data.
+    const [members, categories] = await Promise.all([
+      groupAPI.getGroupMembers(userGroup.id, auth.token),
+      categoryAPI.getGroupCategories(userGroup.id, auth.token),
+    ]);
+    setMembersByGroup((current) => ({ ...current, [userGroup.id]: members }));
+    setCategoriesByGroup((current) => ({
+      ...current, [userGroup.id]: categories
+    }));
+    setVisibleCategoryIds((current) => {
+      const next = new Set(current);
+      categories.forEach((category) => next.add(category.id));
+      return next;
+    });
   }
 
   async function updateGroup(groupId: string, newGroupData: GroupInput) {
@@ -74,27 +136,51 @@ function App() {
         group.id === groupId ? { ...group, ...updatedGroup } : group
       )
     );
-    if (activeGroup?.id === groupId) {
-      setActiveGroup({ ...activeGroup, ...updatedGroup });
-    }
+    setEditingGroup((current) =>
+      current?.id === groupId ? { ...current, ...updatedGroup } : current
+    );
+  }
+
+  function removeGroupFromState(groupId: string) {
+    setGroups((current) => current.filter((group) => group.id !== groupId));
+    setEditingGroup((current) =>
+      current?.id === groupId ? null : current
+    );
+    setMembersByGroup((current) => {
+      const next = { ...current };
+      delete next[groupId];
+      return next;
+    });
+    setCategoriesByGroup((current) => {
+      const removedCategoryIds = new Set(
+        (current[groupId] ?? []).map((category) => category.id)
+      );
+      setVisibleCategoryIds((visible) => {
+        const next = new Set(visible);
+        removedCategoryIds.forEach((id) => next.delete(id));
+        return next;
+      });
+      const next = { ...current };
+      delete next[groupId];
+      return next;
+    });
+    setVisibleGroupIds((current) => {
+      const next = new Set(current);
+      next.delete(groupId);
+      return next;
+    });
   }
 
   async function deleteGroup(groupId: string) {
     if (!auth) return;
     await groupAPI.deleteGroup(groupId, auth.token);
-    const remainingGroups = groups.filter((group) => group.id !== groupId);
-    setGroups(remainingGroups);
-    setActiveGroup(remainingGroups[0] ?? null);
+    removeGroupFromState(groupId);
   }
 
   async function leaveGroup(groupId: string) {
     if (!auth) return;
     await groupAPI.leaveGroup(groupId, auth.token);
-    const remainingGroups = groups.filter(
-      (group) => group.id !== groupId
-    );
-    setGroups(remainingGroups);
-    setActiveGroup(remainingGroups[0] ?? null);
+    removeGroupFromState(groupId);
   }
 
   async function login(email: string, password: string): Promise<void> {
@@ -109,8 +195,6 @@ function App() {
 
   function logout() {
     setAuth(null);
-    setGroups([]);
-    setActiveGroup(null);
   }
 
   async function removeGroupMember(
@@ -119,9 +203,12 @@ function App() {
   ): Promise<void> {
     if (!auth) return;
     await groupAPI.removeGroupMember(groupId, memberId, auth.token);
-    setGroupMembers((current) =>
-      current.filter((member) => member.id !== memberId)
-    );
+    setMembersByGroup((current) => ({
+      ...current,
+      [groupId]: (current[groupId] ?? []).filter(
+        (member) => member.id !== memberId
+      ),
+    }));
   }
 
   async function addGroupMember(
@@ -133,12 +220,15 @@ function App() {
     const member = await groupAPI.addGroupMember(
       groupId, username, role, auth.token
     );
-    setGroupMembers((current) => [...current, member]);
+    setMembersByGroup((current) => ({
+      ...current,
+      [groupId]: [...(current[groupId] ?? []), member],
+    }));
   }
 
   // If the user is not logged in, show the login page.
   if (!auth) {
-    return <LoginPage login={login} signup={signup} />
+    return <LoginPage login={login} signup={signup} />;
   }
 
   return (
@@ -148,15 +238,18 @@ function App() {
         <div className="d-flex flex-grow-1">
           <GroupSidebar
             groups={groups}
-            activeGroup={activeGroup}
-            groupMembers={groupMembers}
-            onSelectGroup={setActiveGroup}
+            membersByGroup={membersByGroup}
+            categoriesByGroup={categoriesByGroup}
+            visibleGroupIds={visibleGroupIds}
+            visibleCategoryIds={visibleCategoryIds}
+            onToggleGroup={toggleGroupVisibility}
+            onToggleCategory={toggleCategoryVisibility}
             onCreateGroup={() => setShowCreateGroup(true)}
-            onEditGroup={() => setShowEditGroup(true)}
+            onEditGroup={setEditingGroup}
           />
           <CalendarView
-            activeGroup={activeGroup}
-            token={auth.token}
+            groups={groups}
+            visibleGroupIds={visibleGroupIds}
             onCreateGroup={() => setShowCreateGroup(true)}
           />
         </div>
@@ -167,12 +260,12 @@ function App() {
           onCreate={createGroup}
         />
       )}
-      {showEditGroup && activeGroup && (
+      {editingGroup && (
         <EditGroupModal
-          group={activeGroup}
-          groupMembers={groupMembers}
+          group={editingGroup}
+          groupMembers={membersByGroup[editingGroup.id] ?? []}
           currentUserId={auth.user.id}
-          onClose={() => setShowEditGroup(false)}
+          onClose={() => setEditingGroup(null)}
           onUpdate={updateGroup}
           onLeave={leaveGroup}
           onDelete={deleteGroup}
