@@ -12,6 +12,7 @@ interface GroupSidebarProps {
   onToggleGroup: (groupId: string) => void;
   onToggleCategory: (categoryId: string) => void;
   onCreateGroup: () => void;
+  onCreateEvent: () => void;
   onEditGroup: (group: UserGroup) => void;
 }
 
@@ -24,6 +25,7 @@ function GroupSidebar({
   onToggleGroup,
   onToggleCategory,
   onCreateGroup,
+  onCreateEvent,
   onEditGroup,
 }: GroupSidebarProps) {
   const [expandedGroupIds, setExpandedGroupIds]
@@ -41,12 +43,14 @@ function GroupSidebar({
     });
   }
 
+  const canCreateEvent = groups.some((group) => group.role !== 'viewer');
+
   return (
     <aside
       className="border-end p-3 d-flex flex-column overflow-auto"
       style={{ width: '280px', minWidth: '280px' }}
     >
-      <div className="d-flex justify-content-between align-items-center mb-3">
+      <div className="d-flex justify-content-between align-items-center mb-2">
         <h2 className="h6 mb-0">Groups</h2>
         <button
           className="btn btn-primary btn-sm"
@@ -57,6 +61,18 @@ function GroupSidebar({
           <i className="bi bi-plus-lg" />
         </button>
       </div>
+      <button
+        type="button"
+        className="btn btn-primary btn-sm w-100 mb-3"
+        onClick={onCreateEvent}
+        disabled={!canCreateEvent}
+        title={canCreateEvent ? 'Create event'
+          : 'You do not have permission to create events in any group'
+        }
+      >
+        <i className="bi bi-calendar-plus me-2" />
+        New Event
+      </button>
       {groups.length === 0 ? (
         <p className="text-body-secondary small">No groups yet.</p>
       ) : (

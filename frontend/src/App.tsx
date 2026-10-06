@@ -5,12 +5,15 @@ import GroupSidebar from './components/GroupSidebar';
 import CalendarView from './components/CalendarView';
 import CreateGroupModal from './components/CreateGroupModal';
 import EditGroupModal from './components/EditGroupModal';
+import CreateEventModal from './components/CreateEventModal';
 import * as authAPI from './api/authAPI';
 import * as groupAPI from './api/groupAPI';
 import * as categoryAPI from './api/categoryAPI';
+import * as eventAPI from './api/eventAPI';
 import type { User, SignupInput, GroupMember } from './types/User';
 import type { UserGroup, GroupInput, GroupRole } from './types/Group';
 import type { Category } from './types/Category';
+import type { EventInput } from './types/Event';
 
 interface AuthState {
   user: User;
@@ -33,6 +36,7 @@ function App() {
   const [visibleCategoryIds, setVisibleCategoryIds]
     = useState<Set<string>>(() => new Set());
   const [showCreateGroup, setShowCreateGroup] = useState<boolean>(false);
+  const [showCreateEvent, setShowCreateEvent] = useState<boolean>(false);
 
   // Load the user's groups and the data needed by the sidebar whenever
   // authentication changes.
@@ -113,7 +117,9 @@ function App() {
       groupAPI.getGroupMembers(userGroup.id, auth.token),
       categoryAPI.getGroupCategories(userGroup.id, auth.token),
     ]);
-    setMembersByGroup((current) => ({ ...current, [userGroup.id]: members }));
+    setMembersByGroup((current) => ({
+      ...current, [userGroup.id]: members
+    }));
     setCategoriesByGroup((current) => ({
       ...current, [userGroup.id]: categories
     }));
@@ -226,6 +232,15 @@ function App() {
     }));
   }
 
+  async function createEvent(
+    groupId: string,
+    newEvent: EventInput
+  ): Promise<void> {
+    if (!auth) return;
+    await eventAPI.createEvent(groupId, newEvent, auth.token);
+    // TODO: handle created event
+  }
+
   // If the user is not logged in, show the login page.
   if (!auth) {
     return <LoginPage login={login} signup={signup} />;
@@ -245,6 +260,7 @@ function App() {
             onToggleGroup={toggleGroupVisibility}
             onToggleCategory={toggleCategoryVisibility}
             onCreateGroup={() => setShowCreateGroup(true)}
+            onCreateEvent={() => setShowCreateEvent(true)}
             onEditGroup={setEditingGroup}
           />
           <CalendarView
@@ -258,6 +274,14 @@ function App() {
         <CreateGroupModal
           onClose={() => setShowCreateGroup(false)}
           onCreate={createGroup}
+        />
+      )}
+      {showCreateEvent && (
+        <CreateEventModal
+          groups={groups}
+          categoriesByGroup={categoriesByGroup}
+          onClose={() => setShowCreateEvent(false)}
+          onCreate={createEvent}
         />
       )}
       {editingGroup && (
