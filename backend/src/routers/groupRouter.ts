@@ -2,6 +2,7 @@ import express from 'express';
 import { requireAuth, type AuthenticatedRequest } from '../middleware/authMiddleware';
 import * as groupDB from '../db/groupDB';
 import * as categoryDB from '../db/categoryDB';
+import * as eventDB from '../db/eventDB';
 import { AppError } from '../appError';
 import { GroupRole } from '../types/Group';
 
@@ -25,17 +26,13 @@ router.get('/', async (req: AuthenticatedRequest, res) => {
 // POST /groups - Create a group
 router.post('/', async (req: AuthenticatedRequest, res) => {
     try {
-        // Retrieve the userId from the authenticated request
-        // and the new group's data from the request body
         const userId: string = req.user!.userId;
         const { name, description } = req.body;
-        // Ensure the group data is valid
         if ((description !== null && typeof description !== 'string')
             || typeof name !== 'string' || name.trim().length === 0) {
             res.status(400).json({ message: "Invalid group data" });
             return;
         }
-        // Add the new group to the database and return the group
         const groupInput = {
             name: name.trim(),
             description: description === null ? null : description.trim(),
@@ -52,19 +49,14 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
 // PUT /groups/:groupId - Update a specific group
 router.put('/:groupId', async (req: AuthenticatedRequest, res) => {
     try {
-        // Retrieve the userId from the authenticated request, the groupId from
-        // the request parameters, and the new group's data from the request body.
         const userId = req.user!.userId;
         const groupId = req.params.groupId as string;
         const { name, description } = req.body;
-        // Ensure the group data is valid
         if ((description !== null && typeof description !== 'string')
             || typeof name !== 'string' || name.trim().length === 0) {
             res.status(400).json({ message: "Invalid group data" });
             return;
         }
-        // Update the group with the new data. updateGroup ensures the user
-        // updating the group has permission to (either its owner or an admin)
         const groupInput = {
             name: name.trim(),
             description: description === null ? null : description.trim(),
@@ -76,7 +68,6 @@ router.put('/:groupId', async (req: AuthenticatedRequest, res) => {
             });
             return;
         }
-        // Return the updated group
         res.json(group);
     } catch (error) {
         console.error(error);
@@ -88,12 +79,8 @@ router.put('/:groupId', async (req: AuthenticatedRequest, res) => {
 // DELETE /groups/:groupId - Delete a specific group
 router.delete('/:groupId', async (req: AuthenticatedRequest, res) => {
     try {
-        // Retrieve the userId from the authenticated request
-        // and the groupId from the request parameters.
         const userId = req.user!.userId;
         const groupId = req.params.groupId as string;
-        // Delete the group from the database
-        // deleteGroup checks that the user deleting the group is its owner
         const deleted = await groupDB.deleteGroup(groupId, userId);
         if (!deleted) {
             res.status(403).json({
@@ -112,20 +99,9 @@ router.delete('/:groupId', async (req: AuthenticatedRequest, res) => {
 // GET /groups/:groupId/members - Get members of a specific group
 router.get('/:groupId/members', async (req: AuthenticatedRequest, res) => {
     try {
-        // Retrieve the userId from the authenticated request
-        // and the groupId from the request parameters.
         const userId = req.user!.userId;
         const groupId = req.params.groupId as string;
-        // Ensure the user is a member of the group
-        const role = await groupDB.getUserRoleInGroup(userId, groupId);
-        if (!role) {
-            res.status(403).json({
-                message: "You do not have access to this group"
-            });
-            return;
-        }
-        // Retrieve and return a list of the group's members from the database
-        const groupMembers = await groupDB.getGroupMembers(groupId);
+        const groupMembers = await groupDB.getGroupMembers(groupId, userId);
         res.json(groupMembers);
     } catch (error) {
         console.error(error);
@@ -137,12 +113,8 @@ router.get('/:groupId/members', async (req: AuthenticatedRequest, res) => {
 // POST /groups/:groupId/members - Add a member to a group
 router.post('/:groupId/members', async (req: AuthenticatedRequest, res) => {
     try {
-        // Retrieve the userId from the authenticated request
-        // Retrieve groupId from the request parameters
         const userId = req.user!.userId;
         const groupId = req.params.groupId as string;
-        // Retrieve member username and role from the request body.
-        // Verify that both are valid.
         const { username, role } = req.body;
         if (typeof username !== 'string' || username.trim().length === 0) {
             res.status(400).json({ message: 'Username is required' });
@@ -153,7 +125,6 @@ router.post('/:groupId/members', async (req: AuthenticatedRequest, res) => {
             res.status(400).json({ message: 'Invalid group role' });
             return;
         }
-        // Add the member to the group by calling the DB function
         const newMember = await groupDB.addGroupMember(
             groupId, username.trim().toLowerCase(), role as GroupRole, userId
         );
@@ -172,12 +143,8 @@ router.post('/:groupId/members', async (req: AuthenticatedRequest, res) => {
 // DELETE /groups/:groupId/members/me - Leave a specific group
 router.delete('/:groupId/members/me', async (req: AuthenticatedRequest, res) => {
     try {
-        // Retrieve the userId from the authenticated request
-        // and the groupId from the request parameters.
         const userId = req.user!.userId;
         const groupId = req.params.groupId as string;
-        // Leave the group. The leaveGroup function ensures that the user
-        // leaving is not the owner.
         const left = await groupDB.leaveGroup(groupId, userId);
         if (!left) {
             res.status(403).json({ message: "Error leaving the group" });
@@ -194,18 +161,13 @@ router.delete('/:groupId/members/me', async (req: AuthenticatedRequest, res) => 
 // DELETE /groups/:groupId/members/:memberId - Remove a specific member from a group
 router.delete('/:groupId/members/:memberId', async (req: AuthenticatedRequest, res) => {
     try {
-        // Retrieve the userId from the authenticated request
-        // and the groupId and memberId from the request parameters.
         const userId = req.user!.userId;
         const groupId = req.params.groupId as string;
         const memberId = req.params.memberId as string;
-        // Attempt to remove the member from the group. The function checks that
-        // the user performing the removal has the necessary permissions.
         const removed = await groupDB.removeGroupMember(groupId, memberId, userId);
         if (!removed) {
-            res.status(403).json({
-                message: "You do not have permission to remove this member from the group"
-            });
+            res.status(403).json({ message: "You do not have permission to "
+                + "remove this member from the group" });
             return;
         }
         res.status(204).send();
@@ -233,21 +195,27 @@ router.get('/:groupId/events', async (req: AuthenticatedRequest, res) => {
     try {
         const userId = req.user!.userId;
         const groupId = req.params.groupId as string;
-        // not implemented yet
-        res.status(501).json({ message: "Not implemented yet" });
+        const eventList = await eventDB.getGroupEvents(groupId, userId);
+        res.json(eventList);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Internal server error" });
     }
 });
 
+
 // POST /groups/:groupId/events - Create a new event for a group
 router.post('/:groupId/events', async (req: AuthenticatedRequest, res) => {
     try {
         const userId = req.user!.userId;
         const groupId = req.params.groupId as string;
-        // not implemented yet
-        res.status(501).json({ message: "Not implemented yet" });
+        const { eventInput } = req.body;
+        const newEvent = await eventDB.createEvent(eventInput, groupId, userId);
+        if (!newEvent) {
+            res.status(400).json({ message: "Failed to create event" });
+            return;
+        }
+        res.status(201).json(newEvent);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Internal server error" });
@@ -281,5 +249,6 @@ router.post('/:groupId/categories', async (req: AuthenticatedRequest, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 });
+
 
 export default router;
