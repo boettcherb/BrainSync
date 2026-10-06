@@ -209,8 +209,8 @@ router.post('/:groupId/events', async (req: AuthenticatedRequest, res) => {
     try {
         const userId = req.user!.userId;
         const groupId = req.params.groupId as string;
-        const { eventInput } = req.body;
-        const newEvent = await eventDB.createEvent(eventInput, groupId, userId);
+        const event = req.body;
+        const newEvent = await eventDB.createEvent(event, groupId, userId);
         if (!newEvent) {
             res.status(400).json({ message: "Failed to create event" });
             return;
