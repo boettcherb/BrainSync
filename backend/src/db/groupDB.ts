@@ -100,42 +100,32 @@ export async function getGroupsByUserId(userId: string): Promise<UserGroup[]> {
 }
 
 
-// Retrieve all the members of a group.
-export async function getGroupMembers(groupId: string): Promise<GroupMember[]> {
+// Retrieve all the members of a group. The user requesting the group's
+// members must be a member of the group.
+export async function getGroupMembers(
+    groupId: string,
+    userId: string,
+): Promise<GroupMember[]> {
     const result = await pool.query<GroupMember>(
         `SELECT u.id, u.username, u.display_name, gm.role
           FROM group_memberships AS gm
           JOIN users AS u
             ON gm.user_id = u.id
           WHERE gm.group_id = $1
+          AND EXISTS (
+              SELECT 1 FROM group_memberships AS requester
+              WHERE requester.group_id = $1
+              AND requester.user_id = $2
+          )
           ORDER BY
-            CASE gm.role
-              WHEN 'owner' THEN 1
-              WHEN 'admin' THEN 2
-              WHEN 'editor' THEN 3
-              WHEN 'contributor' THEN 4
-              WHEN 'viewer' THEN 5
-              ELSE 999
-            END,
+            array_position(
+              ARRAY['owner', 'admin', 'editor', 'contributor', 'viewer'],
+              gm.role
+            ),
             u.display_name;`,
-        [groupId]
+        [groupId, userId]
     );
     return result.rows;
-}
-
-
-// Find the role that a user has within a group
-export async function getUserRoleInGroup(
-    userId: string,
-    groupId: string,
-): Promise<GroupRole | null> {
-    const result = await pool.query<{ role: GroupRole }>(
-        `SELECT role FROM group_memberships
-          WHERE user_id = $1
-          AND group_id = $2;`,
-        [userId, groupId]
-    );
-    return result.rows[0]?.role ?? null;
 }
 
 
