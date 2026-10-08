@@ -21,17 +21,9 @@ function CalendarEvent({ event, date }: CalendarEventProps) {
     date.getDate() + 1
   );
 
-  const startsToday =
-    start >= dayStart &&
-    start < dayEnd;
-
-  const endsToday =
-    end > dayStart &&
-    end <= dayEnd;
-
-  const isMultiDay =
-    start < dayStart ||
-    end > dayEnd;
+  const startsToday = start >= dayStart && start < dayEnd;
+  const endsToday = end > dayStart && end <= dayEnd;
+  const isMultiDay = start < dayStart || end > dayEnd;
 
   function formatTime(value: Date) {
     return value.toLocaleTimeString([], {
@@ -60,12 +52,12 @@ function CalendarEvent({ event, date }: CalendarEventProps) {
         <div className="fw-semibold text-truncate">
           {event.name}
         </div>
-
         <div className="small text-body-secondary">
+          {startsToday && !endsToday && 'starts '}
+          {!startsToday && endsToday && 'ends '}
           {startsToday && formatTime(start)}
           {startsToday && endsToday && ' – '}
           {endsToday && formatTime(end)}
-
           {!startsToday && !endsToday && 'All day'}
         </div>
       </div>
@@ -78,13 +70,8 @@ function CalendarEvent({ event, date }: CalendarEventProps) {
       title={event.name}
     >
       <div className="text-truncate">
-        <span className="fw-semibold me-1">
-          {formatTime(start)}
-        </span>
-
         {event.name}
       </div>
-
       <div className="small text-body-secondary">
         {formatTime(start)} – {formatTime(end)}
       </div>

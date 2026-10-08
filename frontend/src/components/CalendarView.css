@@ -12,18 +12,29 @@
   display: flex;
   align-items: center;
   justify-content: center;
-
   width: 28px;
   height: 28px;
-
   border-radius: 50%;
 }
 
 .calendar-event {
   background: var(--bs-primary-bg-subtle);
   color: var(--bs-body-color);
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   cursor: pointer;
+}
+
+.calendar-event-all-day {
+  background: var(--bs-primary);
+  color: white;
+  border: 1px solid var(--bs-primary);
+}
+
+.calendar-event-multi-day {
+  background: var(--bs-info-bg-subtle);
+  border: 1px solid var(--bs-info-border-subtle);
+  color: var(--bs-body-color);
 }
