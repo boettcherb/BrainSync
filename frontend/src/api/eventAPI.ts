@@ -41,3 +41,42 @@ export async function createEvent(
   }
   return data;
 }
+
+// API request to edit an event for a group.
+export async function editEvent(
+  eventId: string,
+  event: EventInput,
+  token: string,
+): Promise<Event> {
+  const response = await fetch(`${API_URL}/events/${eventId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(event),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(data?.message || 'Error editing event');
+  }
+  return data;
+}
+
+// API request to delete an event for a group.
+export async function deleteEvent(
+  eventId: string,
+  token: string,
+): Promise<void> {
+  const response = await fetch(`${API_URL}/events/${eventId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(data?.message || 'Error deleting event');
+  }
+}
