@@ -30,8 +30,7 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
         const { name, description } = req.body;
         if ((description !== null && typeof description !== 'string')
             || typeof name !== 'string' || name.trim().length === 0) {
-            res.status(400).json({ message: "Invalid group data" });
-            return;
+            return res.status(400).json({ message: "Invalid group data" });
         }
         const groupInput = {
             name: name.trim(),
@@ -54,8 +53,7 @@ router.put('/:groupId', async (req: AuthenticatedRequest, res) => {
         const { name, description } = req.body;
         if ((description !== null && typeof description !== 'string')
             || typeof name !== 'string' || name.trim().length === 0) {
-            res.status(400).json({ message: "Invalid group data" });
-            return;
+            return res.status(400).json({ message: "Invalid group data" });
         }
         const groupInput = {
             name: name.trim(),
@@ -63,10 +61,9 @@ router.put('/:groupId', async (req: AuthenticatedRequest, res) => {
         };
         const group = await groupDB.updateGroup(groupId, groupInput, userId);
         if (!group) {
-            res.status(403).json({
+            return res.status(403).json({
                 message: "You do not have permission to edit this group"
             });
-            return;
         }
         res.json(group);
     } catch (error) {
@@ -83,17 +80,16 @@ router.delete('/:groupId', async (req: AuthenticatedRequest, res) => {
         const groupId = req.params.groupId as string;
         const deleted = await groupDB.deleteGroup(groupId, userId);
         if (!deleted) {
-            res.status(403).json({
+            return res.status(403).json({
                 message: "You do not have permission to delete this group"
             });
-            return;
         }
         res.status(204).send();
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Internal server error" });
     }
-})
+});
 
 
 // GET /groups/:groupId/members - Get members of a specific group
@@ -147,8 +143,7 @@ router.delete('/:groupId/members/me', async (req: AuthenticatedRequest, res) => 
         const groupId = req.params.groupId as string;
         const left = await groupDB.leaveGroup(groupId, userId);
         if (!left) {
-            res.status(403).json({ message: "Error leaving the group" });
-            return;
+            return res.status(403).json({ message: "Error leaving the group" });
         }
         res.status(204).send();
     } catch (error) {
@@ -166,9 +161,8 @@ router.delete('/:groupId/members/:memberId', async (req: AuthenticatedRequest, r
         const memberId = req.params.memberId as string;
         const removed = await groupDB.removeGroupMember(groupId, memberId, userId);
         if (!removed) {
-            res.status(403).json({ message: "You do not have permission to "
+            return res.status(403).json({ message: "You do not have permission to "
                 + "remove this member from the group" });
-            return;
         }
         res.status(204).send();
     } catch (error) {
@@ -212,8 +206,7 @@ router.post('/:groupId/events', async (req: AuthenticatedRequest, res) => {
         const event = req.body;
         const newEvent = await eventDB.createEvent(event, groupId, userId);
         if (!newEvent) {
-            res.status(400).json({ message: "Failed to create event" });
-            return;
+            return res.status(400).json({ message: "Failed to create event" });
         }
         res.status(201).json(newEvent);
     } catch (error) {
