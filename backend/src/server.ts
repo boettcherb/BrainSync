@@ -2,8 +2,9 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { generalApiLimiter, authLimiter } from './middleware/rateLimitMiddleware';
-import groupRouter from './routers/groupRouter';
 import userRouter from './routers/userRouter';
+import groupRouter from './routers/groupRouter';
+import eventRouter from './routers/eventRouter';
 
 const port = process.env.PORT || 3000;
 const app = express();
@@ -62,6 +63,7 @@ app.use('/groups', groupRouter);
 // Event Routes:
 // PUT    /events/:eventId       - Update an event
 // DELETE /events/:eventId       - Delete an event
+app.use('/events', eventRouter);
 
 
 app.listen(port, () => {
