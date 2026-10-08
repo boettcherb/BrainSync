@@ -3,9 +3,10 @@ import type { Event } from '../types/Event';
 interface CalendarEventProps {
   event: Event;
   date: Date;
+  onClick: (event: Event) => void;
 }
 
-function CalendarEvent({ event, date }: CalendarEventProps) {
+function CalendarEvent({ event, date, onClick }: CalendarEventProps) {
   const start = new Date(event.start_time);
   const end = new Date(event.end_time);
 
@@ -37,6 +38,7 @@ function CalendarEvent({ event, date }: CalendarEventProps) {
       <div
         className="calendar-event calendar-event-all-day px-2 py-1 rounded small"
         title={event.name}
+        onClick={() => onClick(event)}
       >
         {event.name}
       </div>
@@ -48,6 +50,7 @@ function CalendarEvent({ event, date }: CalendarEventProps) {
       <div
         className="calendar-event calendar-event-multi-day px-2 py-1 rounded small"
         title={event.name}
+        onClick={() => onClick(event)}
       >
         <div className="fw-semibold text-truncate">
           {event.name}
@@ -68,6 +71,7 @@ function CalendarEvent({ event, date }: CalendarEventProps) {
     <div
       className="calendar-event px-2 py-1 rounded small"
       title={event.name}
+      onClick={() => onClick(event)}
     >
       <div className="text-truncate">
         {event.name}

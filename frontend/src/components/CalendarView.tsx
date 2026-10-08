@@ -9,6 +9,7 @@ interface CalendarViewProps {
   eventsByGroup: Record<string, Event[]>;
   visibleGroupIds: Set<string>;
   onCreateGroup: () => void;
+  onEventClick: (event: Event) => void;
 }
 
 const WEEKDAYS = [
@@ -20,11 +21,11 @@ function CalendarView({
   eventsByGroup,
   visibleGroupIds,
   onCreateGroup,
+  onEventClick,
 }: CalendarViewProps) {
   const today = new Date();
   const [displayYear, setDisplayYear] = useState(today.getFullYear());
   const [displayMonth, setDisplayMonth] = useState(today.getMonth());
-  console.log("eventsByGroup: ", eventsByGroup);
   function goToPreviousMonth() {
     if (displayMonth === 0) {
       setDisplayMonth(11);
@@ -237,6 +238,7 @@ function CalendarView({
                       key={event.id}
                       event={event}
                       date={date}
+                      onClick={() => onEventClick(event)}
                     />
                   ))}
                 </div>

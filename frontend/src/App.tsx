@@ -6,6 +6,7 @@ import CalendarView from './components/CalendarView';
 import CreateGroupModal from './components/CreateGroupModal';
 import EditGroupModal from './components/EditGroupModal';
 import CreateEventModal from './components/CreateEventModal';
+import EditEventModal from './components/EditEventModal';
 import * as authAPI from './api/authAPI';
 import * as groupAPI from './api/groupAPI';
 import * as categoryAPI from './api/categoryAPI';
@@ -30,6 +31,8 @@ function App() {
   const [groups, setGroups] = useState<UserGroup[]>([]);
   // The group currently being managed in EditGroupModal
   const [editingGroup, setEditingGroup] = useState<UserGroup | null>(null);
+  // The event currently being managed in EditEventModal
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [membersByGroup, setMembersByGroup] = useState<MembersByGroup>({});
   const [categoriesByGroup, setCategoriesByGroup] = useState<CategoriesByGroup>({});
   const [eventsByGroup, setEventsByGroup] = useState<EventsByGroup>({});
@@ -257,6 +260,37 @@ function App() {
     }));
   }
 
+  async function editEvent(
+    groupId: string,
+    eventId: string, 
+    updatedEvent: EventInput,
+  ): Promise<void> {
+    if (!auth) return;
+    const editedEvent = await eventAPI.editEvent(
+      eventId, updatedEvent, auth.token
+    );
+    setEventsByGroup((current) => ({
+      ...current,
+      [groupId]: (current[groupId] ?? []).map((event) =>
+        event.id === editedEvent.id ? editedEvent : event
+      ),
+    }));
+  }
+
+  async function deleteEvent(
+    groupId: string,
+    eventId: string
+  ): Promise<void> {
+    if (!auth) return;
+    await eventAPI.deleteEvent(eventId, auth.token);
+    setEventsByGroup((current) => ({
+      ...current,
+      [groupId]: (current[groupId] ?? []).filter(
+        (event) => event.id !== eventId
+      ),
+    }));
+  }
+
   // If the user is not logged in, show the login page.
   if (!auth) {
     return <LoginPage login={login} signup={signup} />;
@@ -284,6 +318,7 @@ function App() {
             eventsByGroup={eventsByGroup}
             visibleGroupIds={visibleGroupIds}
             onCreateGroup={() => setShowCreateGroup(true)}
+            onEventClick={(event) => setEditingEvent(event)}
           />
         </div>
       </div>
@@ -312,6 +347,16 @@ function App() {
           onDelete={deleteGroup}
           onAddMember={addGroupMember}
           onRemoveMember={removeGroupMember}
+        />
+      )}
+      {editingEvent && (
+        <EditEventModal
+          event={editingEvent}
+          groups={groups}
+          categoriesByGroup={categoriesByGroup}
+          onClose={() => setEditingEvent(null)}
+          onEdit={editEvent}
+          onDelete={deleteEvent}
         />
       )}
     </>
