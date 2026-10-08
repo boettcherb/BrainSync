@@ -18,3 +18,12 @@
 
   border-radius: 50%;
 }
+
+.calendar-event {
+  background: var(--bs-primary-bg-subtle);
+  color: var(--bs-body-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}

@@ -13,7 +13,7 @@ import * as eventAPI from './api/eventAPI';
 import type { User, SignupInput, GroupMember } from './types/User';
 import type { UserGroup, GroupInput, GroupRole } from './types/Group';
 import type { Category } from './types/Category';
-import type { EventInput } from './types/Event';
+import type { Event, EventInput } from './types/Event';
 
 interface AuthState {
   user: User;
@@ -22,6 +22,8 @@ interface AuthState {
 
 type MembersByGroup = Record<string, GroupMember[]>;
 type CategoriesByGroup = Record<string, Category[]>;
+type EventsByGroup = Record<string, Event[]>;
+
 
 function App() {
   const [auth, setAuth] = useState<AuthState | null>(null);
@@ -30,6 +32,7 @@ function App() {
   const [editingGroup, setEditingGroup] = useState<UserGroup | null>(null);
   const [membersByGroup, setMembersByGroup] = useState<MembersByGroup>({});
   const [categoriesByGroup, setCategoriesByGroup] = useState<CategoriesByGroup>({});
+  const [eventsByGroup, setEventsByGroup] = useState<EventsByGroup>({});
   // Visibility filters for the unified calendar view
   const [visibleGroupIds, setVisibleGroupIds]
     = useState<Set<string>>(() => new Set());
@@ -54,27 +57,35 @@ function App() {
       const userGroups = await groupAPI.getUserGroups(auth.token);
       setGroups(userGroups);
       setVisibleGroupIds(new Set(userGroups.map((group) => group.id)));
+      // Promise.all allows each group's members, categories, and
+      // events to be fetched concurrently
       const details = await Promise.all(
         userGroups.map(async (group) => {
-          const [members, categories] = await Promise.all([
+          const [members, categories, events] = await Promise.all([
             groupAPI.getGroupMembers(group.id, auth.token),
             categoryAPI.getGroupCategories(group.id, auth.token),
+            eventAPI.getGroupEvents(group.id, auth.token),
           ]);
-          return { groupId: group.id, members, categories };
+          return { groupId: group.id, members, categories, events };
         })
       );
+      // Process the fetched details: fill membersByGroup,
+      // categoriesByGroup, eventsByGroup, and categoryIds
       const nextMembers: MembersByGroup = {};
       const nextCategories: CategoriesByGroup = {};
       const categoryIds = new Set<string>();
+      const nextEvents: EventsByGroup = {};
       for (const detail of details) {
         nextMembers[detail.groupId] = detail.members;
         nextCategories[detail.groupId] = detail.categories;
+        nextEvents[detail.groupId] = detail.events;
         for (const category of detail.categories) {
           categoryIds.add(category.id);
         }
       }
       setMembersByGroup(nextMembers);
       setCategoriesByGroup(nextCategories);
+      setEventsByGroup(nextEvents);
       setVisibleCategoryIds(categoryIds);
     }
     loadUserData().catch((error) => {
@@ -237,8 +248,13 @@ function App() {
     newEvent: EventInput
   ): Promise<void> {
     if (!auth) return;
-    await eventAPI.createEvent(groupId, newEvent, auth.token);
-    // TODO: handle created event
+    const createdEvent = await eventAPI.createEvent(
+      groupId, newEvent, auth.token
+    );
+    setEventsByGroup((current) => ({
+      ...current,
+      [groupId]: [...(current[groupId] ?? []), createdEvent],
+    }));
   }
 
   // If the user is not logged in, show the login page.
@@ -265,6 +281,7 @@ function App() {
           />
           <CalendarView
             groups={groups}
+            eventsByGroup={eventsByGroup}
             visibleGroupIds={visibleGroupIds}
             onCreateGroup={() => setShowCreateGroup(true)}
           />
