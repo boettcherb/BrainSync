@@ -5,12 +5,16 @@ import GroupSidebar from './components/GroupSidebar';
 import CalendarView from './components/CalendarView';
 import CreateGroupModal from './components/CreateGroupModal';
 import EditGroupModal from './components/EditGroupModal';
+import CreateEventModal from './components/CreateEventModal';
+import EditEventModal from './components/EditEventModal';
 import * as authAPI from './api/authAPI';
 import * as groupAPI from './api/groupAPI';
 import * as categoryAPI from './api/categoryAPI';
+import * as eventAPI from './api/eventAPI';
 import type { User, SignupInput, GroupMember } from './types/User';
 import type { UserGroup, GroupInput, GroupRole } from './types/Group';
 import type { Category } from './types/Category';
+import type { Event, EventInput } from './types/Event';
 
 interface AuthState {
   user: User;
@@ -19,20 +23,26 @@ interface AuthState {
 
 type MembersByGroup = Record<string, GroupMember[]>;
 type CategoriesByGroup = Record<string, Category[]>;
+type EventsByGroup = Record<string, Event[]>;
+
 
 function App() {
   const [auth, setAuth] = useState<AuthState | null>(null);
   const [groups, setGroups] = useState<UserGroup[]>([]);
   // The group currently being managed in EditGroupModal
   const [editingGroup, setEditingGroup] = useState<UserGroup | null>(null);
+  // The event currently being managed in EditEventModal
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [membersByGroup, setMembersByGroup] = useState<MembersByGroup>({});
   const [categoriesByGroup, setCategoriesByGroup] = useState<CategoriesByGroup>({});
+  const [eventsByGroup, setEventsByGroup] = useState<EventsByGroup>({});
   // Visibility filters for the unified calendar view
   const [visibleGroupIds, setVisibleGroupIds]
     = useState<Set<string>>(() => new Set());
   const [visibleCategoryIds, setVisibleCategoryIds]
     = useState<Set<string>>(() => new Set());
   const [showCreateGroup, setShowCreateGroup] = useState<boolean>(false);
+  const [showCreateEvent, setShowCreateEvent] = useState<boolean>(false);
 
   // Load the user's groups and the data needed by the sidebar whenever
   // authentication changes.
@@ -50,27 +60,35 @@ function App() {
       const userGroups = await groupAPI.getUserGroups(auth.token);
       setGroups(userGroups);
       setVisibleGroupIds(new Set(userGroups.map((group) => group.id)));
+      // Promise.all allows each group's members, categories, and
+      // events to be fetched concurrently
       const details = await Promise.all(
         userGroups.map(async (group) => {
-          const [members, categories] = await Promise.all([
+          const [members, categories, events] = await Promise.all([
             groupAPI.getGroupMembers(group.id, auth.token),
             categoryAPI.getGroupCategories(group.id, auth.token),
+            eventAPI.getGroupEvents(group.id, auth.token),
           ]);
-          return { groupId: group.id, members, categories };
+          return { groupId: group.id, members, categories, events };
         })
       );
+      // Process the fetched details: fill membersByGroup,
+      // categoriesByGroup, eventsByGroup, and categoryIds
       const nextMembers: MembersByGroup = {};
       const nextCategories: CategoriesByGroup = {};
       const categoryIds = new Set<string>();
+      const nextEvents: EventsByGroup = {};
       for (const detail of details) {
         nextMembers[detail.groupId] = detail.members;
         nextCategories[detail.groupId] = detail.categories;
+        nextEvents[detail.groupId] = detail.events;
         for (const category of detail.categories) {
           categoryIds.add(category.id);
         }
       }
       setMembersByGroup(nextMembers);
       setCategoriesByGroup(nextCategories);
+      setEventsByGroup(nextEvents);
       setVisibleCategoryIds(categoryIds);
     }
     loadUserData().catch((error) => {
@@ -113,7 +131,9 @@ function App() {
       groupAPI.getGroupMembers(userGroup.id, auth.token),
       categoryAPI.getGroupCategories(userGroup.id, auth.token),
     ]);
-    setMembersByGroup((current) => ({ ...current, [userGroup.id]: members }));
+    setMembersByGroup((current) => ({
+      ...current, [userGroup.id]: members
+    }));
     setCategoriesByGroup((current) => ({
       ...current, [userGroup.id]: categories
     }));
@@ -226,6 +246,51 @@ function App() {
     }));
   }
 
+  async function createEvent(
+    groupId: string,
+    newEvent: EventInput
+  ): Promise<void> {
+    if (!auth) return;
+    const createdEvent = await eventAPI.createEvent(
+      groupId, newEvent, auth.token
+    );
+    setEventsByGroup((current) => ({
+      ...current,
+      [groupId]: [...(current[groupId] ?? []), createdEvent],
+    }));
+  }
+
+  async function editEvent(
+    groupId: string,
+    eventId: string, 
+    updatedEvent: EventInput,
+  ): Promise<void> {
+    if (!auth) return;
+    const editedEvent = await eventAPI.editEvent(
+      eventId, updatedEvent, auth.token
+    );
+    setEventsByGroup((current) => ({
+      ...current,
+      [groupId]: (current[groupId] ?? []).map((event) =>
+        event.id === editedEvent.id ? editedEvent : event
+      ),
+    }));
+  }
+
+  async function deleteEvent(
+    groupId: string,
+    eventId: string
+  ): Promise<void> {
+    if (!auth) return;
+    await eventAPI.deleteEvent(eventId, auth.token);
+    setEventsByGroup((current) => ({
+      ...current,
+      [groupId]: (current[groupId] ?? []).filter(
+        (event) => event.id !== eventId
+      ),
+    }));
+  }
+
   // If the user is not logged in, show the login page.
   if (!auth) {
     return <LoginPage login={login} signup={signup} />;
@@ -245,12 +310,15 @@ function App() {
             onToggleGroup={toggleGroupVisibility}
             onToggleCategory={toggleCategoryVisibility}
             onCreateGroup={() => setShowCreateGroup(true)}
+            onCreateEvent={() => setShowCreateEvent(true)}
             onEditGroup={setEditingGroup}
           />
           <CalendarView
             groups={groups}
+            eventsByGroup={eventsByGroup}
             visibleGroupIds={visibleGroupIds}
             onCreateGroup={() => setShowCreateGroup(true)}
+            onEventClick={(event) => setEditingEvent(event)}
           />
         </div>
       </div>
@@ -258,6 +326,14 @@ function App() {
         <CreateGroupModal
           onClose={() => setShowCreateGroup(false)}
           onCreate={createGroup}
+        />
+      )}
+      {showCreateEvent && (
+        <CreateEventModal
+          groups={groups}
+          categoriesByGroup={categoriesByGroup}
+          onClose={() => setShowCreateEvent(false)}
+          onCreate={createEvent}
         />
       )}
       {editingGroup && (
@@ -271,6 +347,16 @@ function App() {
           onDelete={deleteGroup}
           onAddMember={addGroupMember}
           onRemoveMember={removeGroupMember}
+        />
+      )}
+      {editingEvent && (
+        <EditEventModal
+          event={editingEvent}
+          groups={groups}
+          categoriesByGroup={categoriesByGroup}
+          onClose={() => setEditingEvent(null)}
+          onEdit={editEvent}
+          onDelete={deleteEvent}
         />
       )}
     </>

@@ -92,21 +92,18 @@ router.post('/login', async (req, res) => {
         const { email, password } = req.body;
         // Validate email and password have been provided and are strings:
         if (typeof email !== 'string' || typeof password !== 'string') {
-            res.status(400).json({ message: "Email and password are required"});
-            return;
+            return res.status(400).json({ message: "Email and password are required"});
         }
         // Find user by email (case-insensitive). If not found, return 401 error
         const normalizedEmail = email.trim().toLowerCase();
         const user = await userDB.getUserByEmail(normalizedEmail);
         if (!user) {
-            res.status(401).json({ message: "Invalid email or password" });
-            return;
+            return res.status(401).json({ message: "Invalid email or password" });
         }
         // Check if the provided password matches the stored password
         const passIsValid = await bcrypt.compare(password, user.password_hash);
         if (!passIsValid) {
-            res.status(401).json({ message: "Invalid email or password" });
-            return;
+            return res.status(401).json({ message: "Invalid email or password" });
         }
         // Generate an authentication token for the user
         const token = createAuthToken(user.id);
@@ -125,18 +122,15 @@ router.post('/signup', async (req, res) => {
         // Validate the new user
         const validation = validateNewUser(req.body);
         if (validation.data === null) {
-            res.status(400).json({ message: validation.error });
-            return;
+            return res.status(400).json({ message: validation.error });
         }
         // Check if a user with the same email already exists
         if ((await userDB.getUserByEmail(validation.data.email)) !== null) {
-            res.status(409).json({ message: "Email already in use" });
-            return;
+            return res.status(409).json({ message: "Email already in use" });
         }
         // check if a user with the same username already exists
         if ((await userDB.getUserByUsername(validation.data.username)) !== null) {
-            res.status(409).json({ message: "Username already in use" });
-            return;
+            return res.status(409).json({ message: "Username already in use" });
         }
         // Encrypt the password to get a password_hash
         const password_hash = await bcrypt.hash(validation.data.password, 10);
@@ -148,8 +142,7 @@ router.post('/signup', async (req, res) => {
             password_hash,
         });
         if (!user) {
-            res.status(500).json({ message: "Unable to create user in database" });
-            return;
+            return res.status(500).json({ message: "Unable to create user in database" });
         }
         // Generate an authentication token for the user
         const token = createAuthToken(user.id);

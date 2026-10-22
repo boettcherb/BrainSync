@@ -1,11 +1,15 @@
 import { useState } from 'react';
+import CalendarEvent from './CalendarEvent';
 import type { UserGroup } from '../types/Group';
+import type { Event } from '../types/Event';
 import './CalendarView.css';
 
 interface CalendarViewProps {
   groups: UserGroup[];
+  eventsByGroup: Record<string, Event[]>;
   visibleGroupIds: Set<string>;
   onCreateGroup: () => void;
+  onEventClick: (event: Event) => void;
 }
 
 const WEEKDAYS = [
@@ -14,13 +18,14 @@ const WEEKDAYS = [
 
 function CalendarView({
   groups,
+  eventsByGroup,
   visibleGroupIds,
   onCreateGroup,
+  onEventClick,
 }: CalendarViewProps) {
   const today = new Date();
   const [displayYear, setDisplayYear] = useState(today.getFullYear());
   const [displayMonth, setDisplayMonth] = useState(today.getMonth());
-
   function goToPreviousMonth() {
     if (displayMonth === 0) {
       setDisplayMonth(11);
@@ -75,6 +80,29 @@ function CalendarView({
       && date.getDate() === current.getDate();
   }
 
+  const visibleEvents = Object.values(eventsByGroup).flat().filter((event) =>
+    visibleGroupIds.has(event.group_id)
+  );
+
+  function getEventsForDate(date: Date): Event[] {
+    const dayStart = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    );
+    const dayEnd = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate() + 1
+    );
+    return visibleEvents.filter((event) => {
+      const eventStart = new Date(event.start_time);
+      const eventEnd = new Date(event.end_time);
+
+      return eventStart < dayEnd && eventEnd > dayStart;
+    });
+  }
+
   if (groups.length === 0) {
     return (
       <main className="flex-grow-1 p-4">
@@ -102,7 +130,7 @@ function CalendarView({
     .toLocaleString('default', { month: 'long', year: 'numeric' });
 
   return (
-    <main className="flex-grow-1 p-4 overflow-auto">
+    <main className="flex-grow-1 px-4 py-2 overflow-auto">
       {visibleGroupIds.size === 0 && (
         <div className="alert alert-secondary py-2">
           All groups are hidden. Use the sidebar to choose which events to
@@ -178,27 +206,42 @@ function CalendarView({
         </div>
         <div className="calendar-grid">
           {calendarDates.map((date) => {
-            const isInCurMonth = date.getMonth() === displayMonth;
+            const isInCurMonth =
+              date.getMonth() === displayMonth;
             const dateKey = [
               date.getFullYear(),
               date.getMonth(),
               date.getDate(),
             ].join('-');
+            const dayEvents = getEventsForDate(date);
             return (
               <div
                 key={dateKey}
                 className={`calendar-day border-end border-bottom p-2 ${
-                  isInCurMonth ? '' : 'bg-body-tertiary text-body-secondary'
+                  isInCurMonth
+                    ? ''
+                    : 'bg-body-tertiary text-body-secondary'
                 }`}
               >
                 <div
                   className={`calendar-date-number ${
-                    isToday(date) ? 'bg-primary text-white' : ''
+                    isToday(date)
+                      ? 'bg-primary text-white'
+                      : ''
                   }`}
                 >
                   {date.getDate()}
                 </div>
-                {/* Visible events from all selected groups will go here. */}
+                <div className="mt-1 d-flex flex-column gap-1">
+                  {dayEvents.map((event) => (
+                    <CalendarEvent
+                      key={event.id}
+                      event={event}
+                      date={date}
+                      onClick={() => onEventClick(event)}
+                    />
+                  ))}
+                </div>
               </div>
             );
           })}

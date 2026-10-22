@@ -121,7 +121,7 @@ CREATE TABLE event_categories (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-    UNIQUE (group_id, id)
+    UNIQUE (group_id, id),
     UNIQUE (group_id, name)
 );
 
@@ -279,7 +279,7 @@ CREATE TABLE events (
     CHECK (end_time > start_time),
     CHECK (source_recurrence_id IS NULL OR source_occurrence_start IS NOT NULL),
 
-    UNIQUE (source_recurrence_id, source_occurrence_start)
+    UNIQUE (source_recurrence_id, source_occurrence_start),
 
     FOREIGN KEY (group_id, category_id)
         REFERENCES event_categories(group_id, id)
