@@ -1,6 +1,6 @@
 import express from 'express';
-import { requireAuth, type AuthenticatedRequest } from '../middleware/authMiddleware';
-import * as eventDB from '../db/eventDB';
+import { requireAuth, type AuthenticatedRequest } from '../middleware/authMiddleware.js';
+import * as eventDB from '../db/eventDB.js';
 
 const router = express.Router();
 router.use(requireAuth);

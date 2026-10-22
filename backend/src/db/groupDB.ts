@@ -1,7 +1,7 @@
-import { pool } from "./pool";
-import type { GroupMember } from '../types/User';
-import type { Group, GroupInput, GroupRole, UserGroup } from '../types/Group';
-import { AppError } from "../appError";
+import { pool } from "./pool.js";
+import type { GroupMember } from '../types/User.js';
+import type { Group, GroupInput, GroupRole, UserGroup } from '../types/Group.js';
+import { AppError } from "../appError.js";
 
 
 // Insert a new Group into the 'groups' table. The User with the given userId

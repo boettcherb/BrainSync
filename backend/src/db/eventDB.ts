@@ -1,5 +1,5 @@
-import { pool } from './pool';
-import type { Event, EventInput } from '../types/Event';
+import { pool } from './pool.js';
+import type { Event, EventInput } from '../types/Event.js';
 
 
 // Get all events for a group. The user retrieving the events

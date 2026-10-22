@@ -1,5 +1,5 @@
-import { pool } from "./pool";
-import type { User, PublicUser, CreateUserInput } from "../types/User";
+import { pool } from "./pool.js";
+import type { User, PublicUser, CreateUserInput } from "../types/User.js";
 
 
 // Query the 'users' table for a row containing the given email. Email has

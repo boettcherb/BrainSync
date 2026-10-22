@@ -1,10 +1,10 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { generalApiLimiter, authLimiter } from './middleware/rateLimitMiddleware';
-import userRouter from './routers/userRouter';
-import groupRouter from './routers/groupRouter';
-import eventRouter from './routers/eventRouter';
+import { generalApiLimiter, authLimiter } from './middleware/rateLimitMiddleware.js';
+import userRouter from './routers/userRouter.js';
+import groupRouter from './routers/groupRouter.js';
+import eventRouter from './routers/eventRouter.js';
 
 const port = process.env.PORT || 3000;
 const app = express();
@@ -21,11 +21,11 @@ app.use(generalApiLimiter); // Apply general API rate limiting to all routes
 // GET /health - Health check endpoint
 
 app.get("/", (req, res) => {
-    res.send("Smart Task Manager API");
+    return res.send("Smart Task Manager API");
 });
 
 app.get("/health", (req, res) => {
-    res.json({
+    return res.json({
         status: "ok",
         message: "Backend is running",
     });

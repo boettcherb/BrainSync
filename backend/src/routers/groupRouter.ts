@@ -1,10 +1,10 @@
 import express from 'express';
-import { requireAuth, type AuthenticatedRequest } from '../middleware/authMiddleware';
-import * as groupDB from '../db/groupDB';
-import * as categoryDB from '../db/categoryDB';
-import * as eventDB from '../db/eventDB';
-import { AppError } from '../appError';
-import { GroupRole } from '../types/Group';
+import { requireAuth, type AuthenticatedRequest } from '../middleware/authMiddleware.js';
+import * as groupDB from '../db/groupDB.js';
+import * as categoryDB from '../db/categoryDB.js';
+import * as eventDB from '../db/eventDB.js';
+import { AppError } from '../appError.js';
+import { GroupRole } from '../types/Group.js';
 
 const router = express.Router();
 router.use(requireAuth); // Authenticate all endpoints in this file
@@ -113,13 +113,11 @@ router.post('/:groupId/members', async (req: AuthenticatedRequest, res) => {
         const groupId = req.params.groupId as string;
         const { username, role } = req.body;
         if (typeof username !== 'string' || username.trim().length === 0) {
-            res.status(400).json({ message: 'Username is required' });
-            return;
+            return res.status(400).json({ message: 'Username is required' });
         }
-        const validRoles = ['admin', 'editor', 'contributor', 'viewer'];
-        if (typeof role !== 'string' || !validRoles.includes(role)) {
-            res.status(400).json({ message: 'Invalid group role' });
-            return;
+        const validRoles: GroupRole[] = ['admin', 'editor', 'contributor', 'viewer'];
+        if (typeof role !== 'string' || !validRoles.includes(role as GroupRole)) {
+            return res.status(400).json({ message: 'Invalid role' });
         }
         const newMember = await groupDB.addGroupMember(
             groupId, username.trim().toLowerCase(), role as GroupRole, userId
@@ -127,8 +125,7 @@ router.post('/:groupId/members', async (req: AuthenticatedRequest, res) => {
         res.status(201).json(newMember);
     } catch (error) {
         if (error instanceof AppError) {
-            res.status(error.statusCode).json({ message: error.message });
-            return;
+            return res.status(error.statusCode).json({ message: error.message });
         }
         console.error(error);
         res.status(500).json({ message: "Internal server error" });
@@ -176,7 +173,7 @@ router.delete('/:groupId/members/:memberId', async (req: AuthenticatedRequest, r
 router.patch('/:groupId/members/:memberId', async (req: AuthenticatedRequest, res) => {
     try {
         // not implemented yet
-        res.status(501).json({ message: "Not implemented yet" });
+        return res.status(501).json({ message: "Not implemented yet" });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Internal server error" });

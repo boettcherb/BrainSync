@@ -1,4 +1,4 @@
-import type { GroupRole } from "./Group";
+import type { GroupRole } from "./Group.js";
 
 // User data type: Matches the 'users' table in the database schema.
 export interface User {

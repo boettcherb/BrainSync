@@ -1,5 +1,5 @@
-import { pool } from './pool';
-import type { Category, CategoryInput } from '../types/Category';
+import { pool } from './pool.js';
+import type { Category, CategoryInput } from '../types/Category.js';
 
 
 // Get all event categories belonging to a group. The user requesting the
